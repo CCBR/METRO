@@ -26,27 +26,6 @@ __author__ = 'Skyler Kuhn'
 __version__ = 'v0.1.0'
 __email__ = 'kuhnsa@nih.gov'
 
-
-def permissions(parser, filename, *args, **kwargs):
-    """Checks permissions using os.access() to see the user is authorized to access
-    a file/directory. Checks for existence, readability, writability and executability via:
-    os.F_OK (tests existence), os.R_OK (tests read), os.W_OK (tests write), os.X_OK (tests exec).
-    @param parser <argparse.ArgumentParser() object>:
-        Argparse parser object
-    @param filename <str>:
-        Name of file to check
-    @return filename <str>:
-        If file exists and user can read from file
-    """
-    if not exists(filename):
-        parser.error("File '{}' does not exists! Failed to provide vaild input.".format(filename))
-
-    if not os.access(filename, *args, **kwargs):
-        parser.error("File '{}' exists, but cannot read file due to permissions!".format(filename))
-
-    return filename
-
-
 def build(sub_args):
     """Builds the reference files for the AAsap pipeline from a genomic FASTA
     file and a GTF file. Disclaimer: hybrid genomes not supported.

@@ -1,2 +1,3 @@
-# AASAPP
-Amino Acid Sequence Analysis and Structure Prediction Pipeline
+# AAsap
+
+Amino Acid Sequence Analysis Pipeline

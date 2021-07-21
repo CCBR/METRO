@@ -11,20 +11,53 @@ Example:
 """
 
 from __future__ import print_function
-from src.utils import (exists, 
-    initialize, 
-    join_jsons, 
-    git_hash, 
-    which, 
-    safe_copy,
-    bind_paths,
+from src.utils import (initialize, 
+    fatal,
+    err,
+    require,
     permissions) 
-import sys, os, json
+import sys, os, json, subprocess
 import argparse, textwrap
 
 __author__ = 'Skyler Kuhn'
 __version__ = 'v0.1.0'
 __email__ = 'kuhnsa@nih.gov'
+
+
+def bash(cmd, interpreter='/bin/bash', strict=True, **kwargs):
+    """
+    Interface to run a process or bash command. Using subprocess.call_check()
+    due to portability across most python versions. It was introduced in python 2.5
+    and it is also interoperabie across all python 3 versions. 
+    @param cmd <str>:
+        Shell command to run
+    @param interpreter <str>:
+        Interpreter for command to run [default: bash]
+    @pararm strict <bool>:
+        Prefixes any command with 'set -euo pipefail' to ensure process fail with
+        the expected exit-code  
+    @params kwargs <check_call()>:
+        Keyword arguments to modify subprocess.check_call() behavior
+    @return exitcode <int>:
+        Returns the exit code of the run command, failures return non-zero exit codes
+    """
+    # Changes behavior of default shell
+    prefix = ''
+    # set -e: exit immediately upon error
+    # set -u: treats unset variables as an error
+    # set -o pipefail: exits if a error occurs in any point of a pipeline
+    if strict: prefix = 'set -euo pipefail; '
+
+    exitcode = subprocess.check_call(prefix + cmd, shell = True, executable = interpreter, **kwargs)
+
+    if exitcode != 0: 
+        fatal("""\n\tFatal: Failed to run '{}' command!
+        └── Command returned a non-zero exitcode of '{}'.
+        """.format(process, exitcode)
+        )
+
+    return exitcode
+
 
 def build(sub_args):
     """Builds the reference files for the AAsap pipeline from a genomic FASTA
@@ -32,12 +65,33 @@ def build(sub_args):
     @param sub_args <parser.parse_args() object>:
         Parsed arguments for unlock sub-command
     """
-
-    # Get PATH to AAsap git repository 
-    git_repo = os.path.dirname(os.path.abspath(__file__))
-
     # Initialize the output directory
-    initialize(sub_args.output)
+    initialize(sub_args.output, links=[sub_args.ref_fa, sub_args.ref_gtf])
+    
+    # Check for required runtime dependencies
+    # Build command needs samtools and gffread from cufflinks package
+    require(cmds=["samtools", "gffread"], suggestions=["samtools", "cufflinks"])
+    
+    # Build Index for the Genomic FASTA file
+    # samtools faidx ref.fa -fai-idx /path/to/ref.fa.fai
+    process = "samtools faidx {} --fai-idx {}.fai".format(
+        sub_args.ref_fa, 
+        os.path.join(sub_args.output, os.path.basename(sub_args.ref_fa))
+    )
+
+    print("Running: " + process)
+    exitcode = bash(process)
+
+    # Extract transcript sequences from reference FASTA file and GTF file
+    # gffread -F -w /path/to/transcripts.fa -g genome.fa transcripts.gtf
+    process = "gffread -F -w {} -g {} {}".format(
+        os.path.join(sub_args.output, "transcripts.fa"),
+        os.path.join(sub_args.output, os.path.basename(sub_args.ref_fa)),
+        os.path.join(sub_args.output, os.path.basename(sub_args.ref_gtf))
+    )
+
+    print("Running: " + process)
+    exitcode = bash(process)
 
 
 def parsed_arguments():
@@ -96,7 +150,7 @@ def parsed_arguments():
           # Step 1.) Grab an interactive node (do not run on head node)
           sinteractive --mem=8g --cpus-per-task=4
           module purge
-          module load cuffdiff
+          module load cuffdiff samtools
 
           # Step 2.) Build AAsap reference files
           aasap build --ref-fa GRCm39.primary_assembly.genome.fa \\

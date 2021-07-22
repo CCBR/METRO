@@ -82,9 +82,9 @@ def build(sub_args):
     print("Running: " + process)
     exitcode = bash(process)
 
-    # Extract transcript sequences from reference FASTA file and GTF file
-    # gffread -F -w /path/to/transcripts.fa -g genome.fa transcripts.gtf
-    process = "gffread -F -w {} -g {} {}".format(
+    # Extract transcript CDS sequences from reference FASTA file and GTF file
+    # gffread -F -x /path/to/transcripts.fa -g genome.fa transcripts.gtf
+    process = "gffread -F -x {} -g {} {}".format(
         os.path.join(sub_args.output, "transcripts.fa"),
         os.path.join(sub_args.output, os.path.basename(sub_args.ref_fa)),
         os.path.join(sub_args.output, os.path.basename(sub_args.ref_gtf))

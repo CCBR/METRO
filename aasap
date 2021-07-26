@@ -17,6 +17,12 @@ from src.utils import (initialize,
     err,
     require,
     permissions) 
+from src.mutator import (mutate,
+    NonCodingVariantError,
+    UnsupportedVariantTypeError,
+    VariantParsingError,
+    NonMatchingReferenceBases
+    )
 from src.reader import fasta, excel
 import sys, os, subprocess
 import argparse, textwrap
@@ -115,8 +121,25 @@ def run(sub_args):
     for file in sub_args.input:
         print('Opening {}'.format(file))
         df = excel(file, subset=['Transcript_ID','HGVSc','Hugo_Symbol', 'Gene'])
-        for index,row in df.iterrows():
-            print(index,row['HGVSc'])
+        
+        for i,row in df.iterrows():
+            transcript = str(row['Transcript_ID'])
+            hgvs = str(row['HGVSc'])
+            if (hgvs and hgvs != 'nan') and (transcript and transcript != 'nan'):
+                try:
+                    sequence = transcriptome[transcript]
+                except KeyError:
+                    err("WARNING: Transcript {} not found in provided transcripts FASTA file! ",
+                    "Please verify the correct reference file is provided!".format(transcript))
+                    continue # Skip over un-annotated transcript
+                try:
+                    print(i,transcript, hgvs)
+                    mutated = mutate(sequence, hgvs)
+                    print(sequence,'\t', mutated)
+                except NonCodingVariantError as e: pass 
+                except UnsupportedVariantTypeError as e: pass
+                except VariantParsingError as e: pass
+                except NonMatchingReferenceBases as e: pass
 
 
 def parsed_arguments():

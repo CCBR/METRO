@@ -36,7 +36,7 @@ def fasta(filename):
             yield chrom, sequence
 
 
-def excel(filename, subset=[]):
+def excel(filename, subset=[], skip='#', **kwargs):
     """Reads in an excel file as a dataframe. The subset option
     allows a users to only select a few columns given a list of 
     column names.
@@ -44,24 +44,28 @@ def excel(filename, subset=[]):
         Path of an EXCEL file to read and parse
     @param subset list[<str>]:
         List of column names which can be used to subset the df
+    @param skip <str>:
+        Skips over line starting with this character
+    @params kwargs <read_excel()>
+        Key words to modify pandas.read_excel() function behavior
     @return <pandas dataframe>:
         dataframe with spreadsheet contents
     """
     if subset: 
         # 'Transcript_ID','HGVSc','Hugo_Symbol', 'Gene'
-        return pd.read_excel(filename)[subset]
+        return pd.read_excel(filename, comment=skip, **kwargs)[subset]
     
-    return pd.read_excel(filename)
-
-    
-
+    return pd.read_excel(filename, comment=skip, **kwargs)
 
 
 def main():
-	file = sys.argv[1]
-	for chrom, seq in fasta(file):
-		print("{}\t{}".format(chrom, seq))
+    """
+    Pseudo main method that runs when program is directly invoked.
+    """
+    file = sys.argv[1]
+    for chrom, seq in fasta(file):
+	    print("{}\t{}".format(chrom, seq))
 
 
 if __name__ == '__main__':
-	main()
+    main()

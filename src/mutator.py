@@ -62,7 +62,7 @@ def mutate(sequence, hgvs):
     elif 'dup' in hgvs:
         duplication()
     elif 'ins' in hgvs:
-        insertion()
+        return insertion(sequence, hgvs)
     else:
         raise UnsupportedVariantTypeError(hgvs, "HGVS variant '{}' is an unsupported variant type!")
 
@@ -148,6 +148,7 @@ def deletion(seq, hgvs):
         c.4375_4379del
     where the nucleotides from position c.4375 to c.4379 (CGATT) are missing (deleted). 
     Also reported as c.4375_4379delCGATT.
+
     @param seq <str>:
         Coding DNA reference sequence to mutate (transcript sequence)
     @param hgvs <str>:
@@ -200,14 +201,64 @@ def duplication():
 
 
 
-def insertion():
+def insertion(seq, hgvs):
     """One or more letters in the DNA code are new (inserted).
     An insertion is indicated using 'ins' sub string.
     Example:
         c.4375_4376insACCT
     where the new sequence 'ACCT' was found inserted between positions c.4375 and c.4376.
+    NOTE: A stop position is required by the HGVS specification.
+
+    Point of insertion or insertion break point should contain two flanking nucleotides,
+    e.g. (123 and 124) but NOT (123 and 125)
+    Example:
+        c.2_3insCCCCC
+        1  2   3  4
+        A  A   T  T
+             ^
+         C C C C C
+    Result:
+        1  2  3  4  5  6  7  8  9
+        A  A  C  C  C  C  C  A  A
+
+    @param seq <str>:
+        Coding DNA reference sequence to mutate (transcript sequence)
+    @param hgvs <str>:
+        HGVS term describing the mutation
+    @return mutated
+        Mutated coding DNA sequence
     """
-    pass
+    # Regular expression to tokenize HGVS deletion term
+    # See examples below
+    # c.4375_4376insACCT
+    # c.1597_1598insC
+    # c.432-15_432-14insGGGG
+    # c.579+1_579+2insAAGAAGAGGAAGA
+    # c.738_738+1insAAAAAGAAAGAAGAGG
+    regex = '(?P<id>^.+)\.(?P<start>[0-9+-?*]+)_{1}(?P<stop>[0-9+-?*]+){1}(?P<type>ins)(?P<seq>[A,C,G,T,a,c,g,t,N,n]+){1}'
+    tokens = tokenize(regex, ['id', 'start', 'stop', 'type', 'seq'], hgvs, 'insertion')
+    tid, start, stop, mtype, ins_seq = tokens
+    start = int(start)
+
+    # Point of insertion or insertion break point
+    insert_point = start  # Insertion is added directly after concatenating start bp
+
+    # Generate mutated sequence
+    mutated = ''
+    for i in range(len(seq)):
+        bp = seq[i]
+        # Transcript coordinates start at 1 (i.e. not zero based)
+        transcript_index = i + 1
+        if transcript_index == insert_point:
+            # Insertion MUST be added after concatenating insert point (or start) bp
+            mutated += bp
+            mutated += ins_seq
+            continue # goto next bp position
+        mutated += bp
+
+    return mutated
+
+
 
 
 
@@ -339,6 +390,10 @@ def main():
     print('Tokenization of c.8054_8058delATTA -> {}'.format(tokens))
     # Induce a deletion
     print('Induced deletion of c.1_2delAA: AATCC -> {}'.format(deletion('AATCC', 'c.1_2delAA')))
+
+    # Induce an insertion mutation
+    print('Induced insertion of c.2_3insAA: AATT -> {}'.format(insertion('AATT', 'c.2_3insCCccGGgg')))
+
 
 if __name__ == '__main__':
     main()

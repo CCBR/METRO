@@ -55,8 +55,8 @@ def mutate(sequence, hgvs):
     # Handler of each major variant types for Coding DNA reference sequences
     if '>' in hgvs:
         return substitution(sequence, hgvs)
-    elif 'indel' in hgvs:
-        indel()
+    elif 'delins' in hgvs:
+        return indel(sequence, hgvs)
     elif 'del' in hgvs:
         return deletion(sequence, hgvs)
     elif 'dup' in hgvs:
@@ -259,18 +259,60 @@ def insertion(seq, hgvs):
     return mutated
 
 
-
-
-
-def indel():
+def indel(seq, hgvs):
     """One or more letters in the DNA code are missing and replaced by several new letters. 
     A deletion/insertion is indicated using 'delins' sub string.
     Example:
         c.4375_4376delinsAGTT
     the nucleotides from position c.4375 to c.4376 (CG) are missing (deleted) and replaced by 
     the new sequence 'AGTT'. Also reported as c.4375_4376delCGinsAGTT.
+    Example:
+        c.2_3insCCCCC
+        1  2   3  4
+        A  T   T  A
+           - - -
+             ^
+         C C C C C
+    Result:
+        1  2  3  4  5  6  7
+        A  C  C  C  C  C  A
     """
-    pass
+    # Regular expression to tokenize HGVS deletion term
+    # See examples below
+    # c.32386323delinsGA
+    # c.6775_6777delinsC
+    # c.145_147delinsTGG (p.Arg49Trp)
+    # c.9002_9009delinsTTT
+    # LRG_199t1:c.850_901delinsTTCCTCGATGCCTG
+    regex = '(?P<id>^.+)\.(?P<start>[0-9+-?*]+)_{0,1}(?P<stop>[0-9+-?*]+){0,1}(?P<type>delins)(?P<seq>[A,C,G,T,a,c,g,t,N,n]+){1}'
+    tokens = tokenize(regex, ['id', 'start', 'stop', 'type', 'seq'], hgvs, 'indel')
+    tid, start, stop, mtype, ins_seq = tokens
+    start = int(start)
+    deleted_range = [start]
+
+    if stop:
+        # Deletion occuring over a range of base pairs
+        stop = int(stop)
+        deleted_range = range(start, stop + 1)  # Range and string index end position is not inclusive
+
+    # Generate mutated sequence
+    mutated = ''
+    inserted = False  # tracks whether the insertion has been added
+    for i in range(len(seq)):
+        bp = seq[i]
+        # Transcript coordinates start at 1 (i.e. not zero based)
+        transcript_index = i + 1
+        if transcript_index in deleted_range:
+            if not inserted:
+                mutated += ins_seq
+                inserted = True # add insertion sequence only once
+            continue  # do not concatenate bp (i.e. delete bp)
+        mutated += bp
+
+    return mutated
+
+
+
 
 
 class NonCodingVariantError(Exception):
@@ -388,11 +430,16 @@ def main():
     regex = '(?P<id>^.+)\.(?P<start>[0-9+-?*]+)_{0,1}(?P<stop>[0-9+-?*]+){0,1}(?P<type>del)(?P<seq>[A,C,G,T,a,c,g,t,N,n]+){0,1}'
     tokens = tokenize(regex, ['id', 'start', 'stop', 'type', 'seq'], 'c.8054delG', 'deletion')
     print('Tokenization of c.8054_8058delATTA -> {}'.format(tokens))
+
     # Induce a deletion
     print('Induced deletion of c.1_2delAA: AATCC -> {}'.format(deletion('AATCC', 'c.1_2delAA')))
 
     # Induce an insertion mutation
     print('Induced insertion of c.2_3insAA: AATT -> {}'.format(insertion('AATT', 'c.2_3insCCccGGgg')))
+
+    # Induce an indel
+    print('Induced indel of c.2_4delinsgGGGaCCCc: ATTTA -> {}'.format(indel('ATTTA', 'c.2_4delinsgGGGaCCCc')))
+    print('Induced indel of c.2delinsgGGGaCCCc: ACA -> {}'.format(indel('ACA', 'c.2delinsgGGGaCCCc')))
 
 
 if __name__ == '__main__':

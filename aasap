@@ -135,7 +135,7 @@ def run(sub_args):
                 try:
                     print(i,transcript, hgvs)
                     mutated = mutate(sequence, hgvs)
-                    print(sequence,'\t', mutated)
+                    print(hgvs, sequence,'\t', mutated)
                 except NonCodingVariantError as e: pass 
                 except UnsupportedVariantTypeError as e: pass
                 except VariantParsingError as e: pass

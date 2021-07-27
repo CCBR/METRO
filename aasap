@@ -129,8 +129,8 @@ def run(sub_args):
                 try:
                     sequence = transcriptome[transcript]
                 except KeyError:
-                    err("WARNING: Transcript {} not found in provided transcripts FASTA file! ",
-                    "Please verify the correct reference file is provided!".format(transcript))
+                    err("WARNING: Transcript {} not found in provided transcripts FASTA file!".format(transcript),
+                    "Please verify the correct reference file is provided!")
                     continue # Skip over un-annotated transcript
                 try:
                     print(i,transcript, hgvs)

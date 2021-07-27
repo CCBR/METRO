@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 from __future__ import print_function
-from .utils import err
+from utils import err
 import re
 
 """
@@ -58,7 +58,7 @@ def mutate(sequence, hgvs):
     elif 'indel' in hgvs:
         indel()
     elif 'del' in hgvs:
-        deletion()
+        return deletion(sequence, hgvs)
     elif 'dup' in hgvs:
         duplication()
     elif 'ins' in hgvs:
@@ -66,8 +66,6 @@ def mutate(sequence, hgvs):
     else:
         raise UnsupportedVariantTypeError(hgvs, "HGVS variant '{}' is an unsupported variant type!")
 
-
-        
 
 def tokenize(regex, tokens, hgvs, variant_type):
     """Breaks up a given HGVS term into meaningful tokens or components.
@@ -110,7 +108,7 @@ def substitution(seq, hgvs):
         Coding DNA reference sequence to mutate (transcript sequence)
     @param hgvs <str>:
         HGVS term describing the mutation
-    @return mutation
+    @return mutated
         Mutated coding DNA sequence
     """
     # Regular expression to tokenize HGVS subsitution term
@@ -143,16 +141,50 @@ def substitution(seq, hgvs):
     return mutated
 
 
-def deletion():
+def deletion(seq, hgvs):
     """One or more letters of the DNA code are missing (deleted). 
     A deletion is indicated using 'del' sub string.
     Example:
         c.4375_4379del
     where the nucleotides from position c.4375 to c.4379 (CGATT) are missing (deleted). 
     Also reported as c.4375_4379delCGATT.
+    @param seq <str>:
+        Coding DNA reference sequence to mutate (transcript sequence)
+    @param hgvs <str>:
+        HGVS term describing the mutation
+    @return mutated
+        Mutated coding DNA sequence
     """
-    pass
+    # Regular expression to tokenize HGVS deletion term
+    # See examples below
+    # c.448del
+    # c.333_666del
+    # c.8054_8058delATTA
+    # c.862+26delA
+    # c.695-6del
+    # c.460-9_460-8del
+    regex = '(?P<id>^.+)\.(?P<start>[0-9+-?*]+)_{0,1}(?P<stop>[0-9+-?*]+){0,1}(?P<type>del)(?P<seq>[A,C,G,T,a,c,g,t,N,n]+){0,1}'
+    tokens = tokenize(regex, ['id', 'start', 'stop', 'type', 'seq'], hgvs, 'deletion')
+    tid, start, stop, mtype, del_seq = tokens
+    start = int(start)
+    deleted_range = [start]  # point deletion
 
+    if stop:
+        # Deletion occuring over a range of base pairs
+        stop = int(stop)
+        deleted_range = range(start, stop + 1)  # Range and string index end position is not inclusive
+
+    # Generate mutated sequence
+    mutated = ''
+    for i in range(len(seq)):
+        bp = seq[i]
+        # Transcript coordinates start at 1 (i.e. not zero based)
+        transcript_index = i + 1
+        if transcript_index in deleted_range:
+            continue  # do not concatenate bp (i.e. delete bp)
+        mutated += bp
+
+    return mutated
 
 
 def duplication():
@@ -301,6 +333,12 @@ def main():
     except VariantParsingError:
         err('WARNING: Failed to parse {} using {} parser!'.format('g.1_1insCAA', 'substitution'))
 
+    # Check deletion tokenization
+    regex = '(?P<id>^.+)\.(?P<start>[0-9+-?*]+)_{0,1}(?P<stop>[0-9+-?*]+){0,1}(?P<type>del)(?P<seq>[A,C,G,T,a,c,g,t,N,n]+){0,1}'
+    tokens = tokenize(regex, ['id', 'start', 'stop', 'type', 'seq'], 'c.8054delG', 'deletion')
+    print('Tokenization of c.8054_8058delATTA -> {}'.format(tokens))
+    # Induce a deletion
+    print('Induced deletion of c.1_2delAA: AATCC -> {}'.format(deletion('AATCC', 'c.1_2delAA')))
 
 if __name__ == '__main__':
     main()

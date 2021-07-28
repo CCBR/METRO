@@ -13,7 +13,7 @@ def translate(sequence):
         Translated amino acid sequence
     """
     # Clean sequence prior to conversion
-    sequence = sequence.strip()
+    sequence = sequence.strip().upper()
     # Translates codons to amino acids 
     codontable = {
         'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
@@ -38,9 +38,33 @@ def translate(sequence):
     aminoacid = ""
     for i in range(0, len(sequence)-2, 3):
         codon = sequence[i:i+3]
-        aminoacid += codontable[codon]
+        try:
+            aminoacid += codontable[codon]
+        except KeyError:
+            raise InvalidCodonError(sequence, codon)
 
     return aminoacid
+
+
+class InvalidCodonError(Exception):
+    """Raised when a trinucleotide sequence cannot be mapped to a known amino acid.
+    This may occur when the provided sequence contains N's or unknown basepairs.
+    In this scenario, the corresponding amino acid cannot be determined.
+
+    @attributes:
+        sequence -- input DNA sequence which caused the error
+        codon    -- the exact codon or trinucleotide sequence that cannot be mapped.
+    """
+    def __init__(self, sequence, codon):
+        self.sequence = sequence
+        self.codon = codon
+        self.message = """Error: Invalid trinucleotide sequence, '{}', within coding DNA sequence to translate!
+            └── Please view the provided reference file and the provided DNA sequence to translate:
+                > {}""".format(self.codon, self.sequence)
+        super(Exception, self).__init__(self.message)
+
+    def __str__(self):
+        return "{} -> {}".format(self.codon, self.message)
 
 
 def main():
@@ -52,6 +76,11 @@ def main():
     print('Translated {} -> {}'.format('ATGATAACAAACAGCCTACCATGA',translate('ATGATAACAAACAGCCTACCATGA')))
     assert(translate('ATGATAACAAACAGCCTACCATGA') == 'MITNSLP*'), 'Error DNA sequence translation incorrect!'
 
+    # Induce a translation failure
+    try:
+        translate('ATGATAACnAACAGCCTACCATGA')
+    except InvalidCodonError as e:
+        err('WARNING: Unable to translate DNA sequence!\n{}'.format(e))
 
 if __name__ == '__main__':
     main()

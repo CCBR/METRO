@@ -21,14 +21,15 @@ from src.mutator import (mutate,
     NonCodingVariantError,
     UnsupportedVariantTypeError,
     VariantParsingError,
-    NonMatchingReferenceBases
-    )
+    NonMatchingReferenceBases)
+from src.aminoacid import (translate,
+    InvalidCodonError)
 from src.reader import fasta, excel
 import sys, os, subprocess
 import argparse, textwrap
 
 __author__ = 'Skyler Kuhn'
-__version__ = 'v0.1.0'
+__version__ = 'v0.2.0'
 __email__ = 'kuhnsa@nih.gov'
 
 
@@ -109,8 +110,6 @@ def run(sub_args):
     @param sub_args <parser.parse_args() object>:
         Parsed arguments for run sub-command
     """
-    print(sub_args)
-
     # Create dictionary to map transcript ID to its sequence
     transcriptome = {}
     for sid, sequence in fasta(sub_args.transcripts):
@@ -119,9 +118,9 @@ def run(sub_args):
         transcriptome[transcript_id] = sequence
     
     for file in sub_args.input:
-        print('Opening {}'.format(file))
+        err('Opening {}'.format(file))
         df = excel(file, subset=['Transcript_ID','HGVSc','Hugo_Symbol', 'Gene'])
-        
+
         for i,row in df.iterrows():
             transcript = str(row['Transcript_ID'])
             hgvs = str(row['HGVSc'])
@@ -133,13 +132,21 @@ def run(sub_args):
                     "Please verify the correct reference file is provided!"))
                     continue # Skip over un-annotated transcript
                 try:
-                    print(i,transcript, hgvs)
-                    mutated = mutate(sequence, hgvs)
-                    print(hgvs, sequence,'\t', mutated)
-                except NonCodingVariantError as e: pass 
-                except UnsupportedVariantTypeError as e: pass
-                except VariantParsingError as e: pass
-                except NonMatchingReferenceBases as e: pass
+                    mutated_dna = mutate(sequence, hgvs)
+                    mutated_aminoacid = translate(mutated_dna)
+                    print("{}\t{}\t{}\t{}\t{}".format(transcript, hgvs, sequence, mutated_dna, mutated_aminoacid))
+                except NonCodingVariantError as e: 
+                    err("WARNING: Skipping over non-coding DNA HGVS variant '{}' reported in {}!".format(hgvs, transcript))
+                except UnsupportedVariantTypeError as e:
+                    err("WARNING: Skipping over unsupported HGVS variant class '{}' reported in {}!".format(hgvs, transcript))
+                except VariantParsingError as e:
+                    err("WARNING: Skipping over HGVS variant '{}' reported in {} because it could not be parsed!".format(hgvs, transcript))
+                except NonMatchingReferenceBases as e:
+                    err("WARNING: Skipping over HGVS variant '{}' reported in {} due to non-matching reference sequence!".format(hgvs, transcript),
+                    "Please verify the correct reference file is provided!")
+                except InvalidCodonError as e:
+                    err("WARNING: Skipping over HGVS variant '{}' reported in {} due to invalid codon in mutated sequence!".format(hgvs, transcript),
+                    "Please review the following mutated coding DNA sequence for any errors:\n\t> {}".format(mutated_dna))
 
 
 def parsed_arguments():

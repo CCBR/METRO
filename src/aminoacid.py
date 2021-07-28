@@ -53,7 +53,5 @@ def main():
     assert(translate('ATGATAACAAACAGCCTACCATGA') == 'MITNSLP*'), 'Error DNA sequence translation incorrect!'
 
 
-
-
 if __name__ == '__main__':
     main()

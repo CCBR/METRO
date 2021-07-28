@@ -472,9 +472,9 @@ def main():
     """
     Pseudo main method that runs when program is directly invoked.
     """
-    # TODO: add tests for each HGVS variant class
-    # All variants given are in the DMD gene and reported in relation 
-    # to coding DNA reference sequence LRG_199t1 (NM_004006.3).
+    # Tests for each HGVS variant class
+    # All variants given are in the HGVS terms and reported in relation 
+    # to coding DNA reference sequences.
     # https://varnomen.hgvs.org/bg-material/simple/
     
     # Check for variants in non-CDS regions

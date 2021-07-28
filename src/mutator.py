@@ -25,7 +25,7 @@ protein coding sequence get a minus sign (e.g. 'c.-26'), those after the transla
 transcript sequences, e.g. NM_004006.2) and LRG’s (Locus Genomic Reference sequences, e.g. LRG_199t1).
 
 NOTE: mutations occuring in intronic or UTR regions (non-CDS regions) will not be evaulated, and 
-will be passed over and will raise a non-terminating warning message to standard error.
+will be passed over and will raise an UnsupportedVariantTypeError exception.
 """
 
 def mutate(sequence, hgvs):
@@ -60,7 +60,7 @@ def mutate(sequence, hgvs):
     elif 'del' in hgvs:
         return deletion(sequence, hgvs)
     elif 'dup' in hgvs:
-        duplication()
+        return duplication(sequence, hgvs)
     elif 'ins' in hgvs:
         return insertion(sequence, hgvs)
     else:
@@ -96,7 +96,6 @@ def tokenize(regex, tokens, hgvs, variant_type):
     return parsed
 
 
-
 def substitution(seq, hgvs):
     """One letter (nucleotide) of the DNA code is replaced (substituted) by one other letter. 
     On DNA and RNA level a substitution is indicated using '>' character.
@@ -104,6 +103,16 @@ def substitution(seq, hgvs):
         c.4375C>T
     where the C nucleotide at position c.4375 changed to a T
     
+    Mutation:
+        c.2A>T
+        1  2  3  4
+        G  A  C  C
+           ^         
+           T            
+    Result:
+        1  2  3  4
+        G  T  C  C
+
     @param seq <str>:
         Coding DNA reference sequence to mutate (transcript sequence)
     @param hgvs <str>:
@@ -149,6 +158,15 @@ def deletion(seq, hgvs):
     where the nucleotides from position c.4375 to c.4379 (CGATT) are missing (deleted). 
     Also reported as c.4375_4379delCGATT.
 
+    Mutation:
+        c.2_3delTT
+        1  2   3  4
+        A  T   T  A
+           - - -      
+    Result:
+        1  2
+        A  A
+
     @param seq <str>:
         Coding DNA reference sequence to mutate (transcript sequence)
     @param hgvs <str>:
@@ -188,7 +206,7 @@ def deletion(seq, hgvs):
     return mutated
 
 
-def duplication():
+def duplication(seq, hgvs):
     """One or more letters of the DNA code are present twice (doubled, duplicated). 
     A duplication is indicated using 'dup' sub string.
     Example:
@@ -196,9 +214,59 @@ def duplication():
     where the nucleotides from position c.4375 to c.4385 (CGATTATTCCA) are present twice 
     (duplicated). Often reported as c.4375_4385dupCGATTATTCCA or c.4385_4386insCGATTATTCCA
     (not a correct HGVS description).
-    """
-    pass
 
+    Mutation:
+        c.2_3dup
+        1  2   3  4
+        T  C   G  T
+           *   * +
+                 ^
+                C G
+    Result:
+        1  2  3  4  5  6
+        T  C  G  C  G  T
+
+    @param seq <str>:
+        Coding DNA reference sequence to mutate (transcript sequence)
+    @param hgvs <str>:
+        HGVS term describing the mutation
+    @return mutated
+        Mutated coding DNA sequence
+    """
+    # Regular expression to tokenize HGVS deletion term
+    # See examples below
+    # c.13dup
+    # c.928_948dup
+    # c.582+10_582+19dup
+    # c.1487-30dup
+    # c.6172+26dup
+    # NC12341q1.c.924dup
+    # LRG_199t1:c.1704+1dup
+    regex = '(?P<id>^.+)\.(?P<start>[0-9+-?*]+)_{0,1}(?P<stop>[0-9+-?*]+){0,1}(?P<type>dup)'
+    tokens = tokenize(regex, ['id', 'start', 'stop', 'type'], hgvs, 'duplication')
+    tid, start, stop, mtype = tokens
+    start = int(start)
+    duplication_range = [start]  # point duplication
+
+    if stop:
+        # Duplication occuring over a range of base pairs
+        stop = int(stop)
+        duplication_range = range(start, stop + 1)  # Range and string index end position is not inclusive
+
+    # Generate mutated sequence
+    mutated, dup = '', ''
+    for i in range(len(seq)):
+        bp = seq[i]
+        # Transcript coordinates start at 1 (i.e. not zero based)
+        transcript_index = i + 1
+        mutated += bp
+        if transcript_index in duplication_range:
+            dup += bp
+            if transcript_index == max(duplication_range):
+                # Insert duplication into sequence
+                mutated += dup
+
+    return mutated
 
 
 def insertion(seq, hgvs):
@@ -211,7 +279,8 @@ def insertion(seq, hgvs):
 
     Point of insertion or insertion break point should contain two flanking nucleotides,
     e.g. (123 and 124) but NOT (123 and 125)
-    Example:
+
+    Mutation:
         c.2_3insCCCCC
         1  2   3  4
         A  A   T  T
@@ -266,16 +335,24 @@ def indel(seq, hgvs):
         c.4375_4376delinsAGTT
     the nucleotides from position c.4375 to c.4376 (CG) are missing (deleted) and replaced by 
     the new sequence 'AGTT'. Also reported as c.4375_4376delCGinsAGTT.
-    Example:
+    
+    Mutation:
         c.2_3insCCCCC
         1  2   3  4
         A  T   T  A
            - - -
-             ^
+             +
          C C C C C
     Result:
         1  2  3  4  5  6  7
         A  C  C  C  C  C  A
+    
+    @param seq <str>:
+        Coding DNA reference sequence to mutate (transcript sequence)
+    @param hgvs <str>:
+        HGVS term describing the mutation
+    @return mutated
+        Mutated coding DNA sequence
     """
     # Regular expression to tokenize HGVS deletion term
     # See examples below
@@ -310,9 +387,6 @@ def indel(seq, hgvs):
         mutated += bp
 
     return mutated
-
-
-
 
 
 class NonCodingVariantError(Exception):
@@ -373,7 +447,6 @@ class VariantParsingError(Exception):
 
     def __str__(self):
         return "{} -> {}".format(self.hgvs, self.message)
-
 
 
 class NonMatchingReferenceBases(Exception):
@@ -440,6 +513,10 @@ def main():
     # Induce an indel
     print('Induced indel of c.2_4delinsgGGGaCCCc: ATTTA -> {}'.format(indel('ATTTA', 'c.2_4delinsgGGGaCCCc')))
     print('Induced indel of c.2delinsgGGGaCCCc: ACA -> {}'.format(indel('ACA', 'c.2delinsgGGGaCCCc')))
+
+    # Induce a duplication
+    print('Induced duplication of c.2_3dup: ACGA -> {}'.format(duplication('AGCA', 'c.2_3dup')))
+    print('Induced duplication of c.1dup: tAA -> {}'.format(duplication('tAA', 'c.1dup')))
 
 
 if __name__ == '__main__':

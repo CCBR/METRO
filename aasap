@@ -114,6 +114,7 @@ def run(sub_args):
     """
     # Create dictionary to map transcript ID to its sequence
     transcriptome = {}
+    subset = int(sub_args.subset)
     for sid, sequence in fasta(sub_args.transcripts):
         # Grab the transcipt id and remove the version suffix
         transcript_id = sid.split(' ')[0].split('.')[0]
@@ -139,9 +140,9 @@ def run(sub_args):
                     mutated_amino_acid = translate(mutated_dna)
                     aa_variant_position = convert_aa_cooridate(variant_position)
                     if variant_class.lower().startswith('frame_shift'):
-                        truncated_aa = truncate(mutated_amino_acid, aa_variant_position, 30)
+                        truncated_aa = truncate(mutated_amino_acid, aa_variant_position, subset)
                     else:
-                        truncated_aa = truncate(mutated_amino_acid, aa_variant_position, 30, 30)
+                        truncated_aa = truncate(mutated_amino_acid, aa_variant_position, subset, subset)
                     print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(variant_class, transcript, hgvs, variant_position, 
                         sequence, mutated_dna, mutated_amino_acid, truncated_aa))
                 except NonCodingVariantError as e: 
@@ -337,11 +338,16 @@ def parsed_arguments():
     subparser_run.add_argument('--subset',
                                 type = int,
                                 required = False,
+                                default = 30,
                                 help = 'Subset resulting mutated amino acid sequence. \
                                         If defined, this option will obtain the mutated \
-                                        amino acid sequence (AAS) +/- N amino acids of the mutation. \
-                                        By default, the entire sequence of the mutated amino acid \
-                                        is found or generated. \
+                                        amino acid sequence (AAS) +/- N amino acids of the mutation \
+                                        start site. By default, the first 30 upstream and downstream \
+                                        amino acids from the mutation site are recorded for non-frame \
+                                        shift mutations. Amino acids downstream of a frame shit mutation \
+                                        will be reported until the end of the amino acids sequence for \
+                                        the variants transcript or until the first reported terminating \
+                                        stop codon is found. \
                                         Example: --subset 30')
 
     # Sanity check for user command line arguments 
@@ -362,11 +368,11 @@ def parsed_arguments():
 
 def main():
 
-    # Collect args for sub-command
-    args = parsed_arguments()
-
     # Display version information
     print('AASAP ({})'.format(__version__))
+
+    # Collect args for sub-command
+    args = parsed_arguments()
 
     # Mediator method to call sub-command's set handler function
     args.func(args)

@@ -117,8 +117,10 @@ def substitution(seq, hgvs):
         Coding DNA reference sequence to mutate (transcript sequence)
     @param hgvs <str>:
         HGVS term describing the mutation
-    @return mutated
+    @return mutated <str>
         Mutated coding DNA sequence
+    @return mutation_position <str>
+        Position of mutated coding DNA sequence
     """
     # Regular expression to tokenize HGVS subsitution term
     # See examples below
@@ -147,7 +149,7 @@ def substitution(seq, hgvs):
             bp = alt
         mutated += bp
 
-    return mutated
+    return mutated, mutation_position
 
 
 def deletion(seq, hgvs):
@@ -171,8 +173,10 @@ def deletion(seq, hgvs):
         Coding DNA reference sequence to mutate (transcript sequence)
     @param hgvs <str>:
         HGVS term describing the mutation
-    @return mutated
+    @return mutated <str>:
         Mutated coding DNA sequence
+    @return start <str>
+        Start position of mutated coding DNA sequence
     """
     # Regular expression to tokenize HGVS deletion term
     # See examples below
@@ -203,7 +207,7 @@ def deletion(seq, hgvs):
             continue  # do not concatenate bp (i.e. delete bp)
         mutated += bp
 
-    return mutated
+    return mutated, start
 
 
 def duplication(seq, hgvs):
@@ -230,8 +234,10 @@ def duplication(seq, hgvs):
         Coding DNA reference sequence to mutate (transcript sequence)
     @param hgvs <str>:
         HGVS term describing the mutation
-    @return mutated
+    @return mutated <str>:
         Mutated coding DNA sequence
+    @return start <str>
+        Start position of mutated coding DNA sequence
     """
     # Regular expression to tokenize HGVS deletion term
     # See examples below
@@ -266,7 +272,7 @@ def duplication(seq, hgvs):
                 # Insert duplication into sequence
                 mutated += dup
 
-    return mutated
+    return mutated, start
 
 
 def insertion(seq, hgvs):
@@ -294,8 +300,10 @@ def insertion(seq, hgvs):
         Coding DNA reference sequence to mutate (transcript sequence)
     @param hgvs <str>:
         HGVS term describing the mutation
-    @return mutated
+    @return mutated <str>:
         Mutated coding DNA sequence
+    @return start <str>
+        Start position of mutated coding DNA sequence
     """
     # Regular expression to tokenize HGVS deletion term
     # See examples below
@@ -325,7 +333,7 @@ def insertion(seq, hgvs):
             continue # goto next bp position
         mutated += bp
 
-    return mutated
+    return mutated, start
 
 
 def indel(seq, hgvs):
@@ -351,8 +359,10 @@ def indel(seq, hgvs):
         Coding DNA reference sequence to mutate (transcript sequence)
     @param hgvs <str>:
         HGVS term describing the mutation
-    @return mutated
+    @return mutated <str>:
         Mutated coding DNA sequence
+    @return start <str>
+        Start position of mutated coding DNA sequence
     """
     # Regular expression to tokenize HGVS deletion term
     # See examples below
@@ -386,7 +396,7 @@ def indel(seq, hgvs):
             continue  # do not concatenate bp (i.e. delete bp)
         mutated += bp
 
-    return mutated
+    return mutated, start
 
 
 class NonCodingVariantError(Exception):

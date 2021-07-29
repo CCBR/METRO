@@ -23,13 +23,15 @@ from src.mutator import (mutate,
     VariantParsingError,
     NonMatchingReferenceBases)
 from src.aminoacid import (translate,
+    convert_aa_cooridate,
+    truncate,
     InvalidCodonError)
 from src.reader import fasta, excel
 import sys, os, subprocess
 import argparse, textwrap
 
 __author__ = 'Skyler Kuhn'
-__version__ = 'v0.2.0'
+__version__ = 'v1.0.0'
 __email__ = 'kuhnsa@nih.gov'
 
 
@@ -119,12 +121,13 @@ def run(sub_args):
     
     for file in sub_args.input:
         err('Opening {}'.format(file))
-        df = excel(file, subset=['Transcript_ID','HGVSc','Hugo_Symbol', 'Gene'])
+        df = excel(file, subset=['Transcript_ID','Variant_Classification','HGVSc','Hugo_Symbol','Gene'])
 
         for i,row in df.iterrows():
+            variant_class = str(row['Variant_Classification'])
             transcript = str(row['Transcript_ID'])
             hgvs = str(row['HGVSc'])
-            if (hgvs and hgvs != 'nan') and (transcript and transcript != 'nan'):
+            if (hgvs and hgvs != 'nan') and (transcript and transcript != 'nan') and (variant_class and variant_class != 'nan'):
                 try:
                     sequence = transcriptome[transcript]
                 except KeyError:
@@ -132,9 +135,15 @@ def run(sub_args):
                     "Please verify the correct reference file is provided!"))
                     continue # Skip over un-annotated transcript
                 try:
-                    mutated_dna = mutate(sequence, hgvs)
-                    mutated_aminoacid = translate(mutated_dna)
-                    print("{}\t{}\t{}\t{}\t{}".format(transcript, hgvs, sequence, mutated_dna, mutated_aminoacid))
+                    mutated_dna, variant_position = mutate(sequence, hgvs)
+                    mutated_amino_acid = translate(mutated_dna)
+                    aa_variant_position = convert_aa_cooridate(variant_position)
+                    if variant_class.lower().startswith('frame_shift'):
+                        truncated_aa = truncate(mutated_amino_acid, aa_variant_position, 30)
+                    else:
+                        truncated_aa = truncate(mutated_amino_acid, aa_variant_position, 30, 30)
+                    print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(variant_class, transcript, hgvs, variant_position, 
+                        sequence, mutated_dna, mutated_amino_acid, truncated_aa))
                 except NonCodingVariantError as e: 
                     err("WARNING: Skipping over non-coding DNA HGVS variant '{}' reported in {}!".format(hgvs, transcript))
                 except UnsupportedVariantTypeError as e:

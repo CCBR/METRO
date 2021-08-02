@@ -6,7 +6,7 @@
 
 **A**mino **A**cid **s**equence **a**nalysis **p**ipeline, as known as `AAsap`, is a pipeline to characterize the effect of a mutation on an amino acid sequence. 
 
-AAsap takes a MAF-like excel file containing HGVS terms describing a given mutation and a FASTA file containing transcript sequences to determine the consequence of a mutation on a protein product. The `build` sub command can be used to generate a FASTA file containing CDS sequence of each transcript. The `run` sub command will parse and tokenize HGVS terms describing coding DNA mutations. AAsap supports each major class of HGVS terms encoding for coding DNA mutations: substitution, deletion, insertions, duplications, and INDELS. AAsap _does not_ support HGVS tokenization of terms describing mutations in non-exonic (or non-CDS) regions like introns, 3'-UTR or 5'-UTR. AAsap will mutate a given coding DNA sequence based on the provided HGVS term and will translate that sequence into an amino acid sequence. AAsap will also truncate a given amino acid sequence +/- N amino acids relativve to a given mutation start site.
+AAsap takes a MAF-like file containing HGVS terms describing a given mutation and a FASTA file containing transcript sequences to determine the consequence of a mutation on a protein product. The `build` sub command can be used to generate a FASTA file containing CDS sequence of each transcript. The `run` sub command will parse and tokenize HGVS terms describing coding DNA mutations. AAsap supports each major class of HGVS terms encoding for coding DNA mutations: substitution, deletion, insertions, duplications, and INDELS. AAsap _does not_ support HGVS tokenization of terms describing mutations in non-exonic (or non-CDS) regions like introns, 3'-UTR or 5'-UTR. AAsap will mutate a given coding DNA sequence based on the provided HGVS term and will translate that sequence into an amino acid sequence. AAsap will also truncate a given amino acid sequence +/- N amino acids relativve to a given mutation start site.
 
 ### 2. System Requirements
 
@@ -105,7 +105,7 @@ aasap build --ref-fa GRCm39.primary_assembly.genome.fa \
 
 ### 4. Run AAsap
 
-AAsap has a `run` sub command to generate a mutated amino acid sequence described by an HGVS term. AAsap takes a MAF-like excel file containing HGVS terms describing a given mutation and a FASTA file containing transcript sequences to determine the mutated amino acid sequence. The build sub command can be used to generate a FASTA file containing CDS sequence of each transcript. 
+AAsap has a `run` sub command to generate a mutated amino acid sequence described by an HGVS term. AAsap takes a MAF-like file containing HGVS terms describing a given mutation and a FASTA file containing transcript sequences to determine the mutated amino acid sequence. The build sub command can be used to generate a FASTA file containing CDS sequence of each transcript. 
 
 AAsap supports each major class of HGVS terms encoding for mutations in coding DNA sequences: substitution, deletion, insertions, duplications, and INDELS. AAsap does not support HGVS tokenization of terms describing mutations in non-exonic (or non-CDS) regions like intronic or UTR regions.
 
@@ -135,7 +135,7 @@ Each of the following arguments are required. Failure to provide a required argu
 > **Input MAF-like file(s) to process.**  
 > *type: file*  
 > 
-> One or more MAF-like excel files can be provided. From the command-line, each input file should seperated by a space. Globbing is also supported! This makes selecting input files easier. Input MAF-like input files should be in an excel format. For each input file a new output file will be generated in the specified output directory. Each file will end with the following extension: `.aasap.tsv`.
+> One or more MAF-like files can be provided. From the command-line, each input file should seperated by a space. Globbing is also supported! This makes selecting input files easier. Input MAF-like input files should be in an excel-like, CSV, or TSV format. For each input file a new output file will be generated in the specified output directory. Each file will end with the following extension: `.aasap.tsv`.
 > 
 > ***Example:*** 
 > `--input data/*.xls*`

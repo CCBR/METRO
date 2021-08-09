@@ -160,16 +160,17 @@ def run(sub_args):
         err('Writing output file {}'.format(output_file))
         with open(output_file, 'w') as ofh:
             # Write header to output file
-            ofh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
+            ofh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
                 "Variant_Classification", 
                 "Hugo_Symbol", 
                 "Transcript_ID", 
                 "HGVSc", 
                 "Variant_Start_Position", 
-                "Transcript_Sequence", 
+                "WT_Transcript_Sequence",
                 "Mutated_Transcript_Sequence", 
+                "WT_AA_Sequence",
                 "Mutated_AA_Sequence", 
-                "Subset_AA_Sequence"))
+                "Mutated_Subset_AA_Sequence"))
 
             # Mutate each recorded variant in the input file. 
             for i,row in df.iterrows():
@@ -214,12 +215,13 @@ def run(sub_args):
                         # match the HGVS term sequence then a 
                         # NonMatchingReferenceBases error is raised.
                         mutated_dna, variant_position = mutate(sequence, hgvs)
-                        # Translate the mutated coding DNA sequence into 
+                        # Translate the wt and mutated coding DNA sequence into 
                         # an amino acid sequence. Sequences containing 
                         # codons with non-stardard nucleotide 
                         # representations (i.e. not "A,a,C,c,G,T,t") 
                         # will not be translated and will return  
                         # InvalidCodonError.
+                        wt_amino_acid = translate(sequence)
                         mutated_amino_acid = translate(mutated_dna)
                         # Convert coding DNA varaint start site to 
                         # amino acid coordinate system.
@@ -241,8 +243,8 @@ def run(sub_args):
                             # vairable is adjustable via the --subset cli option.
                             truncated_aa = truncate(mutated_amino_acid, aa_variant_position, subset, subset)
                         # Write results to output file
-                        ofh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(variant_class, hugo, transcript, hgvs, variant_position, 
-                            sequence, mutated_dna, mutated_amino_acid, truncated_aa))
+                        ofh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(variant_class, hugo, transcript, hgvs, variant_position, 
+                            sequence, mutated_dna, wt_amino_acid, mutated_amino_acid, truncated_aa))
                     except NonCodingVariantError as e: 
                         err("WARNING: Skipping over non-coding DNA HGVS variant '{}' reported in {}!".format(hgvs, transcript))
                     except UnsupportedVariantTypeError as e:

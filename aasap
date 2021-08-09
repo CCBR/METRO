@@ -35,7 +35,7 @@ import sys, os, subprocess
 import argparse, textwrap
 
 __author__ = 'Skyler Kuhn'
-__version__ = 'v1.1.0'
+__version__ = 'v1.2.0'
 __email__ = 'kuhnsa@nih.gov'
 
 
@@ -160,7 +160,7 @@ def run(sub_args):
         err('Writing output file {}'.format(output_file))
         with open(output_file, 'w') as ofh:
             # Write header to output file
-            ofh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
+            ofh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
                 "Variant_Classification", 
                 "Hugo_Symbol", 
                 "Transcript_ID", 
@@ -170,6 +170,7 @@ def run(sub_args):
                 "Mutated_Transcript_Sequence", 
                 "WT_AA_Sequence",
                 "Mutated_AA_Sequence", 
+                "WT_Subset_AA_Sequence",
                 "Mutated_Subset_AA_Sequence"))
 
             # Mutate each recorded variant in the input file. 
@@ -227,24 +228,27 @@ def run(sub_args):
                         # amino acid coordinate system.
                         aa_variant_position = convert_aa_cooridate(variant_position)
                         if variant_class.lower().startswith('frame_shift'):
-                            # In the Subset_AA_sequence representation of 
-                            # the mutated amino acid seuqnce, the downstream 
-                            # portion of frameshift mutations are reported 
-                            # until one of the following conditions are met:
-                            # the end of the mutated, coding AA sequence is
-                            # reached, OR until the first terminating stop 
-                            # codon is reached. 
-                            truncated_aa = truncate(mutated_amino_acid, aa_variant_position, subset)
+                            # In the Subset_AA_sequence representation of
+                            # the mutated and wt amino acid sequence, the
+                            # downstream portion of frameshift mutations
+                            # are reported until one of the following
+                            # conditions are met: the end of the coding
+                            # sequence is reached, OR until the first
+                            # terminating stop codon is reached.
+                            truncated_wt_aa = truncate(wt_amino_acid, aa_variant_position, subset)
+                            truncated_mutated_aa = truncate(mutated_amino_acid, aa_variant_position, subset)
                         else:
-                            # In the Subset_AA_sequence representation of 
-                            # the mutated amino acid seuqnce, the upstream and 
-                            # downstream portion of non-frame shift mutations are
-                            # +/- N amino acids of the mutation start site. This 
-                            # vairable is adjustable via the --subset cli option.
-                            truncated_aa = truncate(mutated_amino_acid, aa_variant_position, subset, subset)
+                            # In the Subset_AA_sequence representation of
+                            # the wt and mutated amino acid sequence, the
+                            # upstream and downstream portion of non-frame
+                            # shift mutations are +/- N amino acids of the
+                            # mutation start site. This vairable is adjustable
+                            # via the --subset cli option.
+                            truncated_wt_aa = truncate(wt_amino_acid, aa_variant_position, subset, subset)
+                            truncated_mutated_aa = truncate(mutated_amino_acid, aa_variant_position, subset, subset)
                         # Write results to output file
-                        ofh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(variant_class, hugo, transcript, hgvs, variant_position, 
-                            sequence, mutated_dna, wt_amino_acid, mutated_amino_acid, truncated_aa))
+                        ofh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(variant_class, hugo, transcript, hgvs, variant_position,
+                            sequence, mutated_dna, wt_amino_acid, mutated_amino_acid, truncated_wt_aa, truncated_mutated_aa))
                     except NonCodingVariantError as e: 
                         err("WARNING: Skipping over non-coding DNA HGVS variant '{}' reported in {}!".format(hgvs, transcript))
                     except UnsupportedVariantTypeError as e:

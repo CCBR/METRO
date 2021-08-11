@@ -18,7 +18,7 @@ If you are on biowulf, these dependencies can be met by running the following co
 # Do not run aasap on the head node!
 srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty bash
 module purge
-module load cuffdiff samtools python/3.5
+module load cufflinks samtools python/3.5
 ```
 
 ### 3. Build Resources
@@ -95,7 +95,7 @@ Build reference files for the run sub comamnd.
 # Do not run on head node!
 srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty bash
 module purge
-module load cuffdiff samtools
+module load cufflinks samtools
 
 # Step 1.) Build AASAP reference files
 aasap build --ref-fa GRCm39.primary_assembly.genome.fa \

@@ -12,6 +12,9 @@ Example:
 """
 
 from __future__ import print_function
+from operator import sub
+from turtle import setundobuffer
+from unicodedata import numeric
 from src.utils import (initialize, 
     fatal,
     err,
@@ -33,6 +36,8 @@ from src.reader import (fasta,
     maf)
 import sys, os, subprocess
 import argparse, textwrap
+import numpy as np
+import pandas as pd
 
 __author__ = 'Skyler Kuhn'
 __version__ = 'v1.2.0'
@@ -107,6 +112,100 @@ def build(sub_args):
 
     print("Running: " + process)
     exitcode = bash(process)
+
+
+def input(sub_args):
+    """Creates input files for the Amin Acid Sequence Analysis Pipeline from MAF files.
+    Uses user-inputs to determine filtering thresholds.
+    """
+    # Check that col names exist, if they don't exit and error
+    def check(col,df_in):
+        if col not in df_in:
+            print ("The following column is required in input", col)
+            quit()
+    
+    # for each input file, read in file
+    # check for colun header and create variant id (VIDA)
+    # calculate the average VAF and append df to list
+    print("--Processing input files")
+    df_list=[]
+    for file_input in sub_args.mafFiles:
+        #check access
+        err('----Opening {}'.format(file_input))
+
+        # Create fileID to track input
+        file_name=file_input.split(".")[0]
+
+        # read input MAF file
+        df_sub=pd.read_csv(file_input,delimiter="\t",skiprows=1)
+    
+        # Check required cols are in input file; if they are missing 
+        # print to user and exit
+        required_cols=["Hugo_Symbol", "Start_Position", "End_Position",
+                        "Reference_Allele", "Tumor_Seq_Allele1",
+                        "Tumor_Seq_Allele2"]
+        for in_col in required_cols: check(in_col,df_sub)
+        
+        # Add fileID
+        df_sub = df_sub.assign(file_id=file_name)
+        
+        # Add Variant ID (VIDA): 
+        ## Example: [Hugo_Symbol]_[Start_Position]_[End_Position]_[Reference_Allele][Tumor_Seq_Allele1][Tumor_Seq_Allele2]
+        df_sub["VIDA"] = df_sub["Hugo_Symbol"] + "_" + df_sub["Start_Position"].astype(str) + "_" + df_sub["End_Position"].astype(str) + "_" + df_sub["Reference_Allele"] + df_sub["Tumor_Seq_Allele1"] + df_sub["Tumor_Seq_Allele2"]
+
+        # Calculate average VAF: t_alt_count/t_depth
+        df_sub["av_VAF"] = df_sub["t_alt_count"]/df_sub["t_depth"]
+
+        # Append to df list
+        df_list.append(df_sub)
+
+    #merge all file dfs
+    df_merged = pd.concat(df_list)
+
+    # first level of filtering - 
+    # Determine VIDA count value withib df
+    # and include only VIDA's found in all input files
+    df_value_counts=pd.DataFrame(df_merged['VIDA'].value_counts(dropna=True, sort=True))
+    df_value_counts = df_value_counts.reset_index()
+    df_value_counts.columns = ['VIDA', 'VIDA_Counts']
+    df_filt = df_value_counts[df_value_counts["VIDA_Counts"] >= len(sub_args.mafFiles)]
+    
+    # second level of filtering - 
+    # For each VIDA determine which also have:
+    # IMPACT (HIGH or MOD) >= sub_args.impactFilter
+    # FILTER (PASS) >= sub_args.passFilter
+    # group_av_VAF > sub_args.vafFilter
+    vida_list=[]
+    print("--Applying filters")
+    for i,row in df_filt.iterrows():
+        vida_id=str(row['VIDA'])
+
+        # Subset df_merged to calculuate stats specific to this VIDA
+        df_sub = df_merged[df_merged["VIDA"] == vida_id].reset_index()
+
+        # Calculate average av_VAF
+        av_VAF = df_sub["av_VAF"].mean()
+        
+        # Determine IMPACT counts, filter for HIGH or MODERATE
+        impact_count=df_sub['IMPACT'][(df_sub.IMPACT == "HIGH") | 
+                    (df_sub.IMPACT == "MODERATE")].count()
+
+        # Determine FILTER counts, filter for PASS
+        filter_count=df_sub['FILTER'][(df_sub.FILTER == "PASS")].count()
+
+        # Create VIDA LIST of passing filters
+        if ((av_VAF >= sub_args.vafFilter) &  (impact_count >= sub_args.impactFilter) & (filter_count >= sub_args.passFilter)):
+            vida_list.append(vida_id)
+
+    # subset df to include only VIDAs that meet filtering requirements
+    df_final = df_merged[df_merged['VIDA'].isin(vida_list)]
+    df_out=df_final.drop_duplicates()
+
+    #name the file the filter name
+    # create AASAP run input file
+    VAF_val=str(int(sub_args.vafFilter*100))    
+    assap_input_file = os.path.join(sub_args.outputdir, sub_args.outprefix + "_VAF" + VAF_val + "_Variant.csv")
+    df_out.to_csv(assap_input_file, index=False)
 
 
 def run(sub_args):
@@ -185,6 +284,7 @@ def run(sub_args):
                 transcript = str(row['Transcript_ID'])
                 hgvs = str(row['HGVSc'])
                 hugo = str(row['Hugo_Symbol'])
+                print(hgvs,transcript)
                 if (hgvs and hgvs != 'nan') and (transcript and transcript != 'nan') and (variant_class and variant_class != 'nan'):
                     try:
                         sequence = transcriptome[transcript]
@@ -261,6 +361,229 @@ def run(sub_args):
                     except InvalidCodonError as e:
                         err("WARNING: Skipping over HGVS variant '{}' reported in {} due to invalid codon in mutated sequence!".format(hgvs, transcript),
                         "Please review the following mutated coding DNA sequence for any errors:\n\t> {}".format(mutated_dna))
+
+
+def predict(sub_args):
+    """Runs the prediction tool netMHC following output of the Amino Acid sequence analysis pipeline.
+    """
+    # set path for programs
+    netmhc_path="/data/CCBR_Pipeliner/bin/netMHC/netMHCpan-4.1/netMHCpan"
+
+    # Check kmer length is an odd number
+    if (sub_args.kmerLength % 2 ) == 0:
+        print("WARNNING: --kmerLength must be an odd number. Please revise input and try again")
+        sys.exit()
+
+    # Check allele list is <=20 in length
+    split_alleleList=sub_args.alleleList.split(",")
+    if len(split_alleleList)>20:
+        print("WARNNING: --kmerLength must be an odd number. Please revise input and try again")
+        sys.exit()
+
+    # Parse field of interest from each excel file. This file can be the output of AASAP run
+    # or maybe an input created by a user. Input file is required have the following fields:
+    # - Hugo_Symbol
+    # - Transcript_ID
+    # - Variant_Classification	
+    # - WT_Subset_AA_Sequence
+    # - Mutated_Subset_AA_Sequence
+    err('Opening {}'.format(sub_args.mutationFile))
+    df = maf(sub_args.mutationFile[0], 
+    subset=['Hugo_Symbol','Transcript_ID','Variant_Classification',
+            'WT_Subset_AA_Sequence','Mutated_Subset_AA_Sequence'])
+
+    # create fasta header line
+    df["header"] = ">" + df["Transcript_ID"] + "_" + df["Hugo_Symbol"]
+
+    # Identify the type of mutation - if frameshift include 10 AA upstream
+    # and all AA downstream of mutation. Otherwise, identify location of WT:MT 
+    # difference. Center count on mutation and determine up/dowstream AA seq
+    # based on kmerLength. Determine mutation windows 4 AA up/downstream, as 
+    # length allows of mutation for filtering downstream
+    kmer_list = []
+    up_list = []
+    down_list = []
+    for i,row in df.iterrows():
+        mut_type=str(row['Variant_Classification'])
+        wt_str=str(row['WT_Subset_AA_Sequence'])
+        mt_str=str(row['Mutated_Subset_AA_Sequence'])
+        diff_loc=[mut_loc for mut_loc in range(len(wt_str)) if wt_str[mut_loc] != mt_str[mut_loc]]
+        
+        if "Frame" in mut_type:
+            # set prediction position up and downstream of mutation
+            # where downstream is all AA following mutation,
+            # where upstream is 10 AA upstream of mutation or 
+            # until the start of the seq
+            up_loc = int(diff_loc[0]) - 10
+            if (up_loc <= 0): up_loc = 0
+            down_loc = len(mt_str)
+
+        else:
+            # set prediction position up and downstream of mutation
+            # to the length of the kmer with the mutation centered
+            # add one to downstream for inclusive range locations
+            up_loc = int(diff_loc[0]) - (sub_args.kmerLength-1)/2
+            down_loc = int(diff_loc[0]) + (sub_args.kmerLength-1)/2 + 1
+
+            # check peptide length to ensure kmer length is possible with mutation location
+            # if the peptide is shorter than the kmer then use the whole peptide
+            # if it's too short on the upstream then have a longer downstream
+            # if it's too short on the downstream then have a longer upstream
+            if (len(mt_str) >= down_loc) & (up_loc > 0):
+                next
+            elif (len(mt_str) <= sub_args.kmerLength):
+                up_loc = 0
+                down_loc = len(mt_str)
+            elif (up_loc <= 0):
+                up_loc = 0
+            elif (len(mt_str) <= down_loc):
+                down_loc = len(mt_str)
+
+        # set verification position up and downstream of mutation
+        # where upstream is 3 AA proceeding mutation or until the start of the seq
+        # where downstream is 3 AA following mutation or until the end of the seq
+        up_verify = int(diff_loc[0]) - 3
+        down_verify = int(diff_loc[0]) + 4
+        if (up_loc < 0): 
+            up_verify = 0 
+        if (len(mt_str) <= down_verify): 
+            down_verify=len(mt_str) 
+
+        # create list of kmer AA sequences to predict
+        kmer_list.append(mt_str[int(up_loc):int(down_loc)])
+
+        # save up/downstream windows
+        # example: SLEYVSTRQPLRRSLRSCSTP with mutation at pos 10 L
+        # up_window is RQPL | down_window is LRRS
+        up_list.append(mt_str[int(up_verify):int(diff_loc[0]+1)])
+        down_list.append(mt_str[int(diff_loc[0]):int(down_verify)])
+  
+    # add lists to df
+    df["kmer_Seqs"]=kmer_list
+    df["up_verify"]=up_list
+    df["down_verify"]=down_list
+
+    # create a dicts for use downstream
+    symbol_dict = dict(zip(df.kmer_Seqs, df.Hugo_Symbol))
+    up_dict = dict(zip(df.kmer_Seqs, df.up_verify))
+    down_dict = dict(zip(df.kmer_Seqs, df.down_verify))
+
+    #create file in fasta format
+    netMHC_input = os.path.join(sub_args.outputdir,sub_args.outprefix + "_input_netmhc.tsv")
+    df.to_csv(netMHC_input, columns=["header", "kmer_Seqs",], header=False, index=False, sep="\n")
+
+    # Check for required runtime dependencies
+    # Build command needs samtools and gffread from cufflinks package
+    require(cmds=["samtools", "cufflinks"], suggestions=["samtools", "cufflinks"])
+    
+    # Run netMHC
+    # netHMC -f $file -a alleleList -l pepetidelength
+    # -xls -xlsfile /ouput/dir/outprefix_output_netmhc_raw.tsv > outprefix_netmhc_log.tsv
+    netmhc_raw_output = os.path.join(sub_args.outputdir, sub_args.outprefix + "_output_netmhc_raw.tsv")
+    netmhc_cmd_output = os.path.join(sub_args.outputdir, sub_args.outprefix + "_output_netmhc_log.tsv")
+    process = "{} -f {} -a {} -l {} -BA -xls -xlsfile {} > {}".format(
+        netmhc_path, 
+        netMHC_input,
+        sub_args.alleleList,
+        sub_args.peptideLength,
+        netmhc_raw_output,
+        netmhc_cmd_output
+    )
+
+    print("Running: " + process)
+    exitcode = bash(process)
+
+    # Read in output of netMHC
+    # Remove rows which includes the first row of only the allele name and 
+    # the second row which includes the header (header consists of dup values)
+    err('Opening {}'.format(
+        netmhc_raw_output)
+    )
+    df = csv(netmhc_raw_output, index_col=None, header=None,sep="\t")
+    df.drop([0,1],inplace=True)
+    
+    # set counter for position of allele specific output
+    counter=3
+    
+    # Subset df to include four col of general peptide information
+    # and columns relating to specific allele. Add allele name column.
+    df_list=[]
+    for allele in split_alleleList:        
+        df_sub = df.iloc[:, np.r_[0:3, (counter):(counter+6)]]
+        df_sub = df_sub.assign(allele=allele)
+        df_sub.columns = ['Pos', 'Peptide', 'ID', 'core', 
+                        'icore', 'EL-score', 'EL_Rank', 'BA-score', 'BA_Rank','allele']
+        df_list.append(df_sub)
+        counter=counter+6
+    df = pd.concat(df_list)
+
+    # Search for up verification AA sequence in output peptide if is does not exist search for
+    # downstream verification sequence. If neither exist the mutation is not in sequence and 
+    # rows should be removed from futher analysis
+    # For example, a 9-mer could be generaterd in the flanking 9 AA sequence of a 21-mer region
+    # Must be down after df transformation as each core peptide analyzed in a row across alleles
+    # may be different from one another
+    # Gather peptide length information
+    keeprows_list=[]
+    peptidelen_list=[]
+    for i,row in df.iterrows():
+        search_key=str(row['Peptide'])
+        pep_len=len(search_key)
+
+        # search core peptide for upstream/downstream keys
+        res_up = [val for key, val in up_dict.items() if search_key in key]
+        res_down = [val for key, val in down_dict.items() if search_key in key]
+
+        # some peptides have more than one mutation and therefore the sub AA sequence
+        # will match to more than one key. Check if there is a match in the upstream
+        # validator, if there isn't then check downstream
+        res="N"
+        for up_loc in res_up:
+            if up_loc in search_key: res="Y"
+        if res == "N":
+            for down_loc in res_down:
+                if down_loc in search_key: res="Y"
+        
+        # append values to list
+        keeprows_list.append(res)
+        peptidelen_list.append(pep_len)
+
+    # add peptide length as col
+    df["peptide_length"]=peptidelen_list
+
+    # drop rows that were not validated
+    df["keeprows"]=keeprows_list
+    df.drop(df.index[df['keeprows'] == "N"], inplace = True)
+
+    # Peptides length varies to match all possibilites of the peptideLength list
+    # dictionary created above includes the fullPeptide:Hugo_Symbol
+    # In order to match the partial terms, must iterate through the df and assign the
+    # correct Hugo_Symbol
+    # Attempted to map using df['Hugo_Symbol'] = df['ID'].map(symbol_dict), however,
+    # output will shorten the ID column making this unreliable to use as key
+    gene_list=[]
+    for i,row in df.iterrows():
+        search_key=str(row['Peptide'])
+        res = [val for key, val in symbol_dict.items() if search_key in key]
+        res = res[0].replace("[", "").replace("]", "")
+        gene_list.append(res)
+    df["Hugo_Symbol"]=gene_list
+
+    # Add categorical labels to the strength of prediction
+    df["EL_Rank"] = pd.to_numeric(df["EL_Rank"])
+    df = df.sort_values(by=['EL_Rank'])
+    df.loc[df['EL_Rank']<=sub_args.highbind,'prediction_strength'] = 'Strong'
+    df.loc[df['EL_Rank']>sub_args.highbind,'prediction_strength'] = 'Weak'
+    
+    # create final output df
+    for col in df.columns:
+        print(col)
+    df_sub = df.iloc[:, np.r_[9,12,2,1,10,13,3:9]]
+    df_sub.columns = ['Allele', 'Hugo_Symbol', 'ID', 'Peptide', 
+                        'Peptide_Length','Prediction_Strength',
+                        'core', 'icore', 'EL-score', 'EL_Rank', 'BA-score', 'BA_Rank']
+    netmhc_final_output = os.path.join(sub_args.outputdir, sub_args.outprefix + "_output_netmhc_final.tsv")
+    df_sub.to_csv(netmhc_final_output, header=True, index=False, sep="\t")
 
 
 def parsed_arguments():
@@ -356,6 +679,121 @@ def parsed_arguments():
                                 type = lambda option: os.path.abspath(os.path.expanduser(option)),
                                 required = True,
                                 help = argparse.SUPPRESS)
+
+    # Options for the "input" sub-command
+    # Grouped sub-parser arguments are currently not supported by argparse.
+    # https://bugs.python.org/issue9341
+    # Here is a work around to create more useful help message for named
+    # options that are required! Please note: if a required arg is added the
+    # description below should be updated (i.e. update usage and add new option)
+    required_input_options = textwrap.dedent("""\
+        usage: aasap input [-h] --mafFiles MAFFILES
+                              --outputdir OUTPUTdir
+                              --outputprefix OUTPUTprefix
+                              [--vafFilter VAFFILTER]
+                              [--passFilter PASSFILTER]
+                              [--impactFilter IMPACTFILTER]
+
+        Prepares input files for the Amino Acid sequence analysis pipeline.The input sub command takes a 
+        VCF-like or MAF-like file and performs the filtering outlined with parameters below, to prepare 
+        a final input to the AASAP pipeline. 
+
+        required arguments:
+            --mafFiles MAFFILES
+                            Input VCF file(s) in MAF format. Provide a minimum of two files, separated by a comma.
+                            Example: --mafFiles data/test1.maf,data/test2.maf
+                            Required header (in any order): Hugo_Symbol Start_Position End_Position Reference_Allele
+                                                            Tumor_Seq_Allele1 Tumor_Seq_Allele2
+            --outputdir OUTPUTdir
+                           Path to an output directory. This path is where the pipeline
+                           will create all of its output files. If the provided output 
+                           directory does not exist, it will be created. 
+                           Example: --output /path/to/output/dir
+            --outputprefix OUTPUTprefix
+                            Prefix for sample output.
+                            Example: --outputprefix test
+
+        optional arguments:
+            --vafFilter VAFFILTER
+                            Minimum value for average VAF, calculated as t_alt_count/t_depth, to be included.
+                            Example: --vafFilter 0.2
+                            Default: 0.2
+            --passFilter PASSFILTER
+                            Minimum number of input files with a filter rating of "PASS", to be included.
+                            Example: --passFilter 2
+                            Default: 2
+            --impactFilter IMPACTFILTER
+                            Minimum number of input files with an IMPACT rating of "MODERATE" or "HIGH", to be included
+                            Example: --impactFilter 2
+                            Default: 2
+        """)
+
+    # Display example usage in epilog
+    input_epilog = textwrap.dedent("""\
+        example:
+          # Step 1.) Grab an interactive node (do not run on head node)
+          sinteractive --mem=8g --cpus-per-task=4
+          module purge
+          module load python/3.5
+
+          # Step 2.) Run AASAP to find mutated protein products
+          ./aasap input \\
+                --mafFiles /location/of/aasap/run/test1.maf,/location/of/aasap/run/test2.maf \\
+                --outputdir /path/to/output/dir \\
+                --outprefix test \\
+                --vafFilter 0.2 \\
+                --passFilter 2 \\
+                --impactFilter 2
+
+        version:
+          {}
+        """.format(__version__))
+
+    # Supressing help message of required args to overcome no sub-parser named groups
+    subparser_input = subparsers.add_parser('input',
+                                            help = 'Filter input MAF files for AASAP variant binding',
+                                            usage = argparse.SUPPRESS,
+                                            formatter_class=argparse.RawDescriptionHelpFormatter,
+                                            description = required_input_options,
+                                            epilog  = input_epilog)
+    # Input mutation file
+    subparser_input.add_argument('--mafFiles',
+                                # Check if the file exists and if it is readable
+                                type = lambda file: permissions(parser, file, os.R_OK),
+                                required = True,
+                                nargs = '+',
+                                help = argparse.SUPPRESS)
+
+    # Output Directory (analysis working directory)
+    subparser_input.add_argument('--outputdir',
+                                type = lambda option: os.path.abspath(os.path.expanduser(option)),
+                                required = True,
+                                help = argparse.SUPPRESS)
+
+    # Output prefix
+    subparser_input.add_argument('--outprefix',
+                                required = True,
+                                help = 'Prefix of output files')
+
+    # average VAF filter
+    subparser_input.add_argument('--vafFilter',
+                                required = False,
+                                default='.2',
+                                type = float,
+                                help = 'Minimum threshold for average VAF score (t_alt_count/t_depth)')
+    # PASS filter
+    subparser_input.add_argument('--passFilter',
+                                required = False,
+                                default='2',
+                                type = int,
+                                help = 'Minimum threshold for number of files in which PASS filter must be found')
+
+    # IMPACT (MODERATE, HIGH) filter
+    subparser_input.add_argument('--impactFilter',
+                                required = False,
+                                default='2',
+                                type = int,
+                                help = 'Minimum threshold for number of files in which IMPACT filter (MODERATE or HIGH) must be found')
 
     # Options for the "run" sub-command
     # Grouped sub-parser arguments are currently not supported by argparse.
@@ -453,6 +891,153 @@ def parsed_arguments():
                                         the variants transcript or until the first reported terminating \
                                         stop codon is found. \
                                         Example: --subset 30')
+    
+    # Options for the "predict" sub-command
+    # Grouped sub-parser arguments are currently not supported by argparse.
+    # https://bugs.python.org/issue9341
+    # Here is a work around to create more useful help message for named
+    # options that are required! Please note: if a required arg is added the
+    # description below should be updated (i.e. update usage and add new option)
+    required_predict_options = textwrap.dedent("""\
+        usage: aasap predict [-h] --mutationFile MUTATIONFILE
+                              --alleleList ALLELELIST
+                              --outputdir OUTPUTDIR
+                              --outprefix OUTPREFIX
+                              [--kmerLength KMERLENGTH]
+                              [--peptideLength PEPTIDELENGTH]
+                              [--highbind HIGHBIND]
+                              [--lowbind LOWBIND]
+
+        Runs the Amino Acid sequence analysis pipeline with reference files generated 
+        from the build sub command to determine the consequence of a mutation on a 
+        protein product. The run sub command takes a VCF-like or MAF-like file and 
+        a FASTA file containing transcript sequences. 
+
+        required arguments:
+            --mutationFile MUTATIONFILE
+                            Input file in tsv format. This can be the output of the AASAP run command
+                            or a user generated file.
+                            Example: --mutationFile data/test_Variant.aasap.tsv
+                            Required header (in any order):    Variant_Classification	Hugo_Symbol	
+                                Transcript_ID   WT_Subset_AA_Sequence	Mutated_Subset_AA_Sequence
+            --alleleList ALLELELIST
+                            Allele name(s). If list, each allele is separated by commas
+                            and without spaces (max 20 per submission). For full list of alleles possible:
+                            https://services.healthtech.dtu.dk/services/NetMHCpan-4.1/MHC_allele_names.txt
+                            Example: --alleleList H-2-Ld,H-2-Dd,H-2-Kb
+            --outputdir OUTPUTdir
+                           Path to an output directory. This path is where the pipeline
+                           will create all of its output files. If the provided output 
+                           directory does not exist, it will be created. 
+                           Example: --output /path/to/output/dir
+            --outputprefix OUTPUTprefix
+                            Prefix all sample outputs will be named. 
+                            Example: --outputprefix test
+
+        optional arguments:
+            --kmerLength KMERLENGTH
+                            Length of Mutated_Subset_AA_Sequence to submit in prediction analysis.
+                            Will set mutation to be center of length for non-frameshift mutations,
+                            so value must be an odd number.
+                            Example: --kmerLength 21
+                            Default: 21
+            --peptideLength PEPTIDELENGTH
+                           Single value, or list, of length to shorten peptide sequence for prediction analysis.
+                           If list, each length is separated by a comma and without spaces.
+                           Example: --peptideLength 8,9,10,11
+                           Default: 8,9,10,11
+            --highbind HIGHBIND
+                            Threshold to define binding affinity as "STRONG" for netHMC output. Must be an integer
+                            that is lower than --lowbind.
+                            Example: --highbind 0.5
+                            Default: 0.5
+            --lowbind LOWBIND
+                            Threshold to define binding affinity as "WEAK" for netHMC output. Must be an integer
+                            that is higher than --highbind.
+                            Example: --lowbind 2
+                            Default: 2
+        """)
+
+    # Display example usage in epilog
+    predict_epilog = textwrap.dedent("""\
+        example:
+          # Step 1.) Grab an interactive node (do not run on head node)
+          sinteractive --mem=8g --cpus-per-task=4
+          module purge
+          module load python/3.5
+
+          # Step 2.) Run AASAP to find mutated protein products
+          ./aasap predict \\
+                --mutationFile /location/of/aasap/run/test_Variant.asap.tsv \\
+                --allelList H-2-Ld,H-2-Dd,H-2-Kb \\
+                --peptideLength 8,9,10,11 \\
+                --kmerLength 21 \\
+                --output /path/to/output/dir \\
+                --outprefix test
+        version:
+          {}
+        """.format(__version__))
+
+    
+    # Supressing help message of required args to overcome no sub-parser named groups
+    subparser_predict = subparsers.add_parser('predict',
+                                            help = 'Predict AASAP variant binding using NETMHC.',
+                                            usage = argparse.SUPPRESS,
+                                            formatter_class=argparse.RawDescriptionHelpFormatter,
+                                            description = required_predict_options,
+                                            epilog  = predict_epilog)
+    # Input mutation file
+    subparser_predict.add_argument('--mutationFile',
+                                # Check if the file exists and if it is readable
+                                type = lambda file: permissions(parser, file, os.R_OK),
+                                required = True,
+                                nargs = '+',
+                                help = argparse.SUPPRESS)
+
+    # HLA allele name
+    subparser_predict.add_argument('--alleleList',
+                                required = True,
+                                help = 'Allele name(s). If submitting more than one allele, sep by comma without spaces')
+
+                                
+    # Output Directory (analysis working directory)
+    subparser_predict.add_argument('--outputdir',
+                                type = lambda option: os.path.abspath(os.path.expanduser(option)),
+                                required = True,
+                                help = argparse.SUPPRESS)
+
+    # Output prefix
+    subparser_predict.add_argument('--outprefix',
+                                required = True,
+                                help = 'Prefix of output files')
+
+    # kmerLength
+    subparser_predict.add_argument('--kmerLength',
+                                required = False,
+                                default='21',
+                                type = int,
+                                help = 'Length of kmer to run prediction analysis')
+
+    # Peptide length
+    subparser_predict.add_argument('--peptideLength',
+                                required = False,
+                                default='8,9,10,11',
+                                help = 'Peptide length (multiple lengths separated by comma e.g. 8,9,10)')
+
+    # High Binding Threshold
+    subparser_predict.add_argument('--highbind',
+                                required = False,
+                                default='.5',
+                                type = float,
+                                help = 'Threshold for high binding peptides (EL-Rank)')
+
+    # Low Binding Threshold
+    subparser_predict.add_argument('--lowbind',
+                                required = False,
+                                default='2',
+                                type = int,
+                                help = 'Threshold for low binding peptides (EL-Rank)')
+                                
 
     # Sanity check for user command line arguments 
     if len(sys.argv) < 2:
@@ -463,7 +1048,9 @@ def parsed_arguments():
 
     # Define handlers for each sub-parser
     subparser_build.set_defaults(func = build)
+    subparser_input.set_defaults(func = input)
     subparser_run.set_defaults(func = run)
+    subparser_predict.set_defaults(func = predict)
 
     # Parse command-line args
     args = parser.parse_args()

@@ -35,7 +35,7 @@ import sys, os, subprocess
 import argparse, textwrap
 
 __author__ = 'Skyler Kuhn'
-__version__ = 'v1.2.0'
+__version__ = 'v1.2.1'
 __email__ = 'kuhnsa@nih.gov'
 
 

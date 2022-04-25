@@ -64,7 +64,7 @@ def mutate(sequence, hgvs):
     elif 'ins' in hgvs:
         return insertion(sequence, hgvs)
     else:
-        raise UnsupportedVariantTypeError(hgvs, "HGVS variant '{}' is an unsupported variant type!")
+        raise UnsupportedVariantTypeError(hgvs)
 
 
 def tokenize(regex, tokens, hgvs, variant_type):
@@ -467,11 +467,10 @@ class NonMatchingReferenceBases(Exception):
     @attributes:
         hgvs -- input hgvs term which caused the error
     """
-    def __init__(self, hgvs, method):
+    def __init__(self, hgvs):
         self.hgvs = hgvs
-        self.method = method
         self.message = """Error: Non-matching bases in HGVS '{}' mutation and reference sequence!
-            └── Please verify the correct reference file is provided!""".format(self.hgvs, self.method)
+            └── Please verify the correct reference file is provided!""".format(self.hgvs)
         super(Exception, self).__init__(self.message)
 
     def __str__(self):
@@ -493,6 +492,14 @@ def main():
     except NonCodingVariantError:
         err("WARNING: Skipping over non-coding DNA HGVS variant '{}'!".format('c.1-1_1insCAA'))
     
+    # Check for non-supported HGVS terms
+    # passing a repeat expansion, which
+    # is currently not supported
+    try:
+        mutate(sequence='TTTTAC', hgvs='g.3AAA[14]')
+    except UnsupportedVariantTypeError:
+        err("WARNING: Skipping over non-coding DNA HGVS variant '{}'!".format('g.3AAA[14]'))
+
     # Check for variants in genomic dna
     try:
         mutate(sequence='TTTTAC', hgvs='g.1_1insCAA')
@@ -508,6 +515,12 @@ def main():
         )
     except VariantParsingError:
         err('WARNING: Failed to parse {} using {} parser!'.format('g.1_1insCAA', 'substitution'))
+
+    # Induce a NonMatchingReferenceBases Error
+    try:
+        substitution("AGCT", 'c.1C>T')
+    except NonMatchingReferenceBases:
+        err('WARNING: Reference bases described in HGVS term, {}, does not match provided reference: {}'.format('c.1C>T', 'AGCT'))
 
     # Check deletion tokenization
     regex = '(?P<id>^.+)\.(?P<start>[0-9+-?*]+)_{0,1}(?P<stop>[0-9+-?*]+){0,1}(?P<type>del)(?P<seq>[A,C,G,T,a,c,g,t,N,n]+){0,1}'

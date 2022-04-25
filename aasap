@@ -387,7 +387,8 @@ def predict(sub_args):
     # - Variant_Classification	
     # - WT_Subset_AA_Sequence
     # - Mutated_Subset_AA_Sequence
-    err('Opening {}'.format(sub_args.mutationFile))
+    print("--Preparing Data")
+    err('----Opening {}'.format(sub_args.mutationFile))
     df = maf(sub_args.mutationFile[0], 
     subset=['Hugo_Symbol','Transcript_ID','Variant_Classification',
             'WT_Subset_AA_Sequence','Mutated_Subset_AA_Sequence'])
@@ -395,9 +396,7 @@ def predict(sub_args):
     # create fasta header line
     df["header"] = ">" + df["Transcript_ID"] + "_" + df["Hugo_Symbol"]
 
-    # Identify the type of mutation - if frameshift include 10 AA upstream
-    # and all AA downstream of mutation. Otherwise, identify location of WT:MT 
-    # difference. Center count on mutation and determine up/dowstream AA seq
+    # Center count on mutation and determine up/dowstream AA seq
     # based on kmerLength. Determine mutation windows 4 AA up/downstream, as 
     # length allows of mutation for filtering downstream
     kmer_list = []
@@ -407,8 +406,19 @@ def predict(sub_args):
         mut_type=str(row['Variant_Classification'])
         wt_str=str(row['WT_Subset_AA_Sequence'])
         mt_str=str(row['Mutated_Subset_AA_Sequence'])
-        diff_loc=[mut_loc for mut_loc in range(len(wt_str)) if wt_str[mut_loc] != mt_str[mut_loc]]
-        
+        try:
+            diff_loc=[mut_loc for mut_loc in range(len(mt_str)) if wt_str[mut_loc] != mt_str[mut_loc]]
+            print("WORKS")
+            print(mut_type)
+            print(wt_str)
+            print(mt_str)
+            print(diff_loc)
+        except:
+            print("LOOK HEREEEEEE")
+            print(mut_type)
+            print(wt_str)
+            print(mt_str)
+
         if "Frame" in mut_type:
             # set prediction position up and downstream of mutation
             # where downstream is all AA following mutation,
@@ -490,15 +500,14 @@ def predict(sub_args):
         netmhc_cmd_output
     )
 
-    print("Running: " + process)
+    print("--Running: " + process)
     exitcode = bash(process)
 
     # Read in output of netMHC
     # Remove rows which includes the first row of only the allele name and 
     # the second row which includes the header (header consists of dup values)
-    err('Opening {}'.format(
-        netmhc_raw_output)
-    )
+    print("--Post-Processing")
+    err('----Opening {}'.format(netmhc_raw_output))
     df = csv(netmhc_raw_output, index_col=None, header=None,sep="\t")
     df.drop([0,1],inplace=True)
     
@@ -576,8 +585,6 @@ def predict(sub_args):
     df.loc[df['EL_Rank']>sub_args.highbind,'prediction_strength'] = 'Weak'
     
     # create final output df
-    for col in df.columns:
-        print(col)
     df_sub = df.iloc[:, np.r_[9,12,2,1,10,13,3:9]]
     df_sub.columns = ['Allele', 'Hugo_Symbol', 'ID', 'Peptide', 
                         'Peptide_Length','Prediction_Strength',

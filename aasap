@@ -40,7 +40,7 @@ import numpy as np
 import pandas as pd
 
 __author__ = 'Skyler Kuhn'
-__version__ = 'v1.2.0'
+__version__ = 'v1.2.1'
 __email__ = 'kuhnsa@nih.gov'
 
 

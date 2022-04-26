@@ -284,7 +284,7 @@ def run(sub_args):
                 transcript = str(row['Transcript_ID'])
                 hgvs = str(row['HGVSc'])
                 hugo = str(row['Hugo_Symbol'])
-                print(hgvs,transcript)
+
                 if (hgvs and hgvs != 'nan') and (transcript and transcript != 'nan') and (variant_class and variant_class != 'nan'):
                     try:
                         sequence = transcriptome[transcript]

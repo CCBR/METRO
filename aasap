@@ -393,12 +393,13 @@ def predict(sub_args):
     subset=['Hugo_Symbol','Transcript_ID','Variant_Classification',
             'WT_Subset_AA_Sequence','Mutated_Subset_AA_Sequence'])
 
+    # remove duplicate values
+    df = df.drop_duplicates()
+
     # create fasta header line
     df["header"] = ">" + df["Transcript_ID"] + "_" + df["Hugo_Symbol"]
 
-    # Center count on mutation and determine up/dowstream AA seq
-    # based on kmerLength. Determine mutation windows 4 AA up/downstream, as 
-    # length allows of mutation for filtering downstream
+    # for each potential mutation
     kmer_list = []
     up_list = []
     down_list = []
@@ -406,72 +407,83 @@ def predict(sub_args):
         mut_type=str(row['Variant_Classification'])
         wt_str=str(row['WT_Subset_AA_Sequence'])
         mt_str=str(row['Mutated_Subset_AA_Sequence'])
-        try:
-            diff_loc=[mut_loc for mut_loc in range(len(mt_str)) if wt_str[mut_loc] != mt_str[mut_loc]]
-            print("WORKS")
-            print(mut_type)
-            print(wt_str)
-            print(mt_str)
-            print(diff_loc)
-        except:
-            print("LOOK HEREEEEEE")
-            print(mut_type)
-            print(wt_str)
-            print(mt_str)
+        
+        # if the mt_str and the wt_str are the same, then skip
+        if wt_str != mt_str:
 
-        if "Frame" in mut_type:
-            # set prediction position up and downstream of mutation
-            # where downstream is all AA following mutation,
-            # where upstream is 10 AA upstream of mutation or 
-            # until the start of the seq
-            up_loc = int(diff_loc[0]) - 10
-            if (up_loc <= 0): up_loc = 0
-            down_loc = len(mt_str)
+            # determine where the differences are between the mt_str and wt_str
+            # first check with mt_str as the source, if there is no difference because
+            # the string stops early on the mt_str use the wt_str as the source to capture
+            try:
+                diff_loc=[mut_loc for mut_loc in range(len(mt_str)) if wt_str[mut_loc] != mt_str[mut_loc]]
+            except:
+                diff_loc=[mut_loc for mut_loc in range(len(wt_str)) if wt_str[mut_loc] != mt_str[mut_loc]]
 
+            # handle frameshifts differently than all other mutation types
+            if "Frame" in mut_type:
+                # set prediction position up and downstream of mutation
+                # where downstream is all AA following mutation,
+                # where upstream is 10 AA upstream of mutation or 
+                # until the start of the seq
+                up_loc = int(diff_loc[0]) - 10
+                if (up_loc <= 0): up_loc = 0
+                down_loc = len(mt_str)
+
+            else:
+                # set prediction position up and downstream of mutation
+                # to the length of the kmer with the mutation centered
+                # add one to downstream for inclusive range locations
+                up_loc = int(diff_loc[0]) - (sub_args.kmerLength-1)/2
+                down_loc = int(diff_loc[0]) + (sub_args.kmerLength-1)/2 + 1
+
+                # check peptide length to ensure kmer length is possible with mutation location
+                # if the peptide is shorter than the kmer then use the whole peptide
+                # if it's too short on the upstream then have a longer downstream
+                # if it's too short on the downstream then have a longer upstream
+                if (len(mt_str) >= down_loc) & (up_loc > 0):
+                    next
+                elif (len(mt_str) <= sub_args.kmerLength):
+                    up_loc = 0
+                    down_loc = len(mt_str)
+                elif (up_loc <= 0):
+                    up_loc = 0
+                elif (len(mt_str) <= down_loc):
+                    down_loc = len(mt_str)
+
+            # set verification position up and downstream of mutation
+            # where upstream is 3 AA proceeding mutation or until the start of the seq
+            # where downstream is 3 AA following mutation or until the end of the seq
+            up_verify = int(diff_loc[0]) - 3
+            down_verify = int(diff_loc[0]) + 4
+            if (up_loc < 0): up_verify = 0 
+            if (len(mt_str) <= down_verify): down_verify=len(mt_str) 
+
+            # add kmer AA sequences to predict
+            kmer_list.append(mt_str[int(up_loc):int(down_loc)])
+
+            # save up/downstream windows
+            # example: SLEYVSTRQPLRRSLRSCSTP with mutation at pos 10 L
+            # up_window is RQPL | down_window is LRRS
+            up_list.append(mt_str[int(up_verify):int(diff_loc[0]+1)])
+            down_list.append(mt_str[int(diff_loc[0]):int(down_verify)])
         else:
-            # set prediction position up and downstream of mutation
-            # to the length of the kmer with the mutation centered
-            # add one to downstream for inclusive range locations
-            up_loc = int(diff_loc[0]) - (sub_args.kmerLength-1)/2
-            down_loc = int(diff_loc[0]) + (sub_args.kmerLength-1)/2 + 1
+            # create list of kmer AA sequences to predict
+            kmer_list.append("")
 
-            # check peptide length to ensure kmer length is possible with mutation location
-            # if the peptide is shorter than the kmer then use the whole peptide
-            # if it's too short on the upstream then have a longer downstream
-            # if it's too short on the downstream then have a longer upstream
-            if (len(mt_str) >= down_loc) & (up_loc > 0):
-                next
-            elif (len(mt_str) <= sub_args.kmerLength):
-                up_loc = 0
-                down_loc = len(mt_str)
-            elif (up_loc <= 0):
-                up_loc = 0
-            elif (len(mt_str) <= down_loc):
-                down_loc = len(mt_str)
-
-        # set verification position up and downstream of mutation
-        # where upstream is 3 AA proceeding mutation or until the start of the seq
-        # where downstream is 3 AA following mutation or until the end of the seq
-        up_verify = int(diff_loc[0]) - 3
-        down_verify = int(diff_loc[0]) + 4
-        if (up_loc < 0): 
-            up_verify = 0 
-        if (len(mt_str) <= down_verify): 
-            down_verify=len(mt_str) 
-
-        # create list of kmer AA sequences to predict
-        kmer_list.append(mt_str[int(up_loc):int(down_loc)])
-
-        # save up/downstream windows
-        # example: SLEYVSTRQPLRRSLRSCSTP with mutation at pos 10 L
-        # up_window is RQPL | down_window is LRRS
-        up_list.append(mt_str[int(up_verify):int(diff_loc[0]+1)])
-        down_list.append(mt_str[int(diff_loc[0]):int(down_verify)])
+            # save up/downstream windows
+            # example: SLEYVSTRQPLRRSLRSCSTP with mutation at pos 10 L
+            # up_window is RQPL | down_window is LRRS
+            up_list.append("")
+            down_list.append("")        
   
     # add lists to df
     df["kmer_Seqs"]=kmer_list
     df["up_verify"]=up_list
     df["down_verify"]=down_list
+
+    # subset df for only samples with a kmer, drop duplicates
+    df = df.dropna(thresh=1)
+    df = df.drop_duplicates()
 
     # create a dicts for use downstream
     symbol_dict = dict(zip(df.kmer_Seqs, df.Hugo_Symbol))
@@ -526,13 +538,12 @@ def predict(sub_args):
         counter=counter+6
     df = pd.concat(df_list)
 
-    # Search for up verification AA sequence in output peptide if is does not exist search for
+    # Search for up verification AA sequence in output peptide, if is does not exist search for
     # downstream verification sequence. If neither exist the mutation is not in sequence and 
     # rows should be removed from futher analysis
     # For example, a 9-mer could be generaterd in the flanking 9 AA sequence of a 21-mer region
     # Must be down after df transformation as each core peptide analyzed in a row across alleles
     # may be different from one another
-    # Gather peptide length information
     keeprows_list=[]
     peptidelen_list=[]
     for i,row in df.iterrows():
@@ -583,7 +594,8 @@ def predict(sub_args):
     df = df.sort_values(by=['EL_Rank'])
     df.loc[df['EL_Rank']<=sub_args.highbind,'prediction_strength'] = 'Strong'
     df.loc[df['EL_Rank']>sub_args.highbind,'prediction_strength'] = 'Weak'
-    
+    df.loc[df['EL_Rank']>sub_args.lowbind,'prediction_strength'] = 'Unlikely'
+
     # create final output df
     df_sub = df.iloc[:, np.r_[9,12,2,1,10,13,3:9]]
     df_sub.columns = ['Allele', 'Hugo_Symbol', 'ID', 'Peptide', 

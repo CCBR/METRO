@@ -12,9 +12,6 @@ Example:
 """
 
 from __future__ import print_function
-from operator import sub
-from turtle import setundobuffer
-from unicodedata import numeric
 from src.utils import (initialize, 
     fatal,
     err,
@@ -38,6 +35,7 @@ import sys, os, subprocess
 import argparse, textwrap
 import numpy as np
 import pandas as pd
+from shutil import which
 
 __author__ = 'Skyler Kuhn'
 __version__ = 'v1.2.1'
@@ -121,8 +119,7 @@ def input(sub_args):
     # Check that col names exist, if they don't exit and error
     def check(col,df_in):
         if col not in df_in:
-            print ("The following column is required in input", col)
-            quit()
+            fatal("""\n\tThe following column is required in input '{}'.""".format(col))
     
     # for each input file, read in file
     # check for colun header and create variant id (VIDA)
@@ -364,10 +361,14 @@ def run(sub_args):
 
 
 def predict(sub_args):
-    """Runs the prediction tool netMHC following output of the Amino Acid sequence analysis pipeline.
     """
-    # set path for programs
-    netmhc_path="/data/CCBR_Pipeliner/bin/netMHC/netMHCpan-4.1/netMHCpan"
+    Runs the prediction tool netMHC following output of the Amino Acid sequence analysis pipeline.
+    """
+    # Check whether NETMHC is executable 
+    def check_netMHC(name):
+        if which(name) is None:
+            fatal("netMHCpan must be executable on users $PATH. Review documentation for information on installation.")
+    check_netMHC("netMHCpan")
 
     # Check kmer length is an odd number
     if (sub_args.kmerLength % 2 ) == 0:

@@ -377,8 +377,7 @@ def predict(sub_args):
     # Check allele list is <=20 in length
     split_alleleList=sub_args.alleleList.split(",")
     if len(split_alleleList)>20:
-        print("WARNNING: --kmerLength must be an odd number. Please revise input and try again")
-        sys.exit()
+        fatal("WARNNING: --kmerLength must be an odd number. Please revise input and try again")
 
     # Parse field of interest from each excel file. This file can be the output of AASAP run
     # or maybe an input created by a user. Input file is required have the following fields:

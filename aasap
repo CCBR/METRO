@@ -756,8 +756,8 @@ def parsed_arguments():
 
           # Step 2.) Run AASAP to find mutated protein products
           ./aasap input \\
-                --mafFiles /location/of/aasap/run/test1.maf,/location/of/aasap/run/test2.maf \\
-                --outputdir /path/to/output/dir \\
+                --mafFiles /scratch/$USER/AASAP/test1.maf,/scratch/$USER/AASAP/test2.maf \\
+                --outputdir /scratch/$USER/AASAP/ \\
                 --outprefix test \\
                 --vafFilter 0.2 \\
                 --passFilter 2 \\
@@ -860,7 +860,7 @@ def parsed_arguments():
           module load python/3.5
 
           # Step 2.) Run AASAP to find mutated protein products
-          ./aasap run --input  data/*.xlsx \\
+          ./aasap run --input  /data/*.xlsx \\
                          --output /scratch/$USER/AASAP \\
                          --transcripts transcripts.fa \\
                          --subset 30
@@ -986,11 +986,11 @@ def parsed_arguments():
 
           # Step 2.) Run AASAP to find mutated protein products
           ./aasap predict \\
-                --mutationFile /location/of/aasap/run/test_Variant.asap.tsv \\
+                --mutationFile /scratch/$USER/AASAP/test_Variant.asap.tsv \\
                 --allelList H-2-Ld,H-2-Dd,H-2-Kb \\
                 --peptideLength 8,9,10,11 \\
                 --kmerLength 21 \\
-                --output /path/to/output/dir \\
+                --outputdir /scratch/$USER/AASAP/ \\
                 --outprefix test
         version:
           {}

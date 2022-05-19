@@ -372,8 +372,7 @@ def predict(sub_args):
 
     # Check kmer length is an odd number
     if (sub_args.kmerLength % 2 ) == 0:
-        print("WARNNING: --kmerLength must be an odd number. Please revise input and try again")
-        sys.exit()
+        fatal("WARNNING: --kmerLength must be an odd number. Please revise input and try again")
 
     # Check allele list is <=20 in length
     split_alleleList=sub_args.alleleList.split(",")

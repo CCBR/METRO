@@ -35,7 +35,6 @@ import sys, os, subprocess
 import argparse, textwrap
 import numpy as np
 import pandas as pd
-from shutil import which
 
 __author__ = 'Skyler Kuhn'
 __version__ = 'v1.2.1'
@@ -364,7 +363,8 @@ def predict(sub_args):
     """
     Runs the prediction tool netMHC following output of the Amino Acid sequence analysis pipeline.
     """
-    # Check whether NETMHC is executable 
+    # Check whether NETMHC is executable
+    from shutil import which
     def check_netMHC(name):
         if which(name) is None:
             fatal("netMHCpan must be executable on users $PATH. Review documentation for information on installation.")

@@ -505,7 +505,7 @@ def predict(sub_args):
     netmhc_raw_output = os.path.join(sub_args.outputdir, sub_args.outprefix + "_output_netmhc_raw.tsv")
     netmhc_cmd_output = os.path.join(sub_args.outputdir, sub_args.outprefix + "_output_netmhc_log.tsv")
     process = "{} -f {} -a {} -l {} -BA -xls -xlsfile {} > {}".format(
-        netmhc_path, 
+        "netMHCpan", 
         netMHC_input,
         sub_args.alleleList,
         sub_args.peptideLength,

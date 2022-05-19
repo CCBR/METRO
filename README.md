@@ -10,7 +10,7 @@ AAsap takes a MAF-like file containing HGVS terms describing a given mutation an
 
 ### 2. System Requirements
 
-`aasap` executable is composed of several inter-related sub commands. The `build` sub command requires that `samtools`, `gffread` from the cufflinks, and `python` are installed on the target system. A virtual environment containing the required python packages to run aasap can be built from our `requirements.txt`. aasap compatiable with `python>=2.7` and `python>=3.5` (with preference to the latter).
+`aasap` executable is composed of several inter-related sub commands. The `build` sub command requires that `samtools`, `gffread` from the cufflinks, and `python` are installed on the target system. the `predict` sub command requires that netMHCpan[https://services.healthtech.dtu.dk/service.php?NetMHCpan-4.1] is available in user's $PATH. A virtual environment containing the required python packages to run aasap can be built from our `requirements.txt`. aasap compatiable with `python>=2.7` and `python>=3.5` (with preference to the latter).
 
 If you are on biowulf, these dependencies can be met by running the following command:
 ```bash

@@ -1,10 +1,10 @@
-# AAsap
+# METRO
 
-[![GitHub releases](https://img.shields.io/github/release/CCBR/AAsap)](https://github.com/CCBR/AAsap/releases)  [![GitHub issues](https://img.shields.io/github/issues/CCBR/AAsap)](https://github.com/CCBR/AAsap/issues) [![GitHub license](https://img.shields.io/github/license/CCBR/AAsap)](https://github.com/CCBR/AAsap/blob/master/LICENSE)  
+[![GitHub releases](https://img.shields.io/github/release/CCBR/AAsap)](https://github.com/CCBR/METRO/releases)  [![GitHub issues](https://img.shields.io/github/issues/CCBR/AAsap)](https://github.com/CCBR/METRO/issues) [![GitHub license](https://img.shields.io/github/license/CCBR/AAsap)](https://github.com/CCBR/METRO/blob/master/LICENSE)  
 
 ### 1. Introduction  
 
-**A**mino **A**cid **s**equence **a**nalysis **p**ipeline, as known as `AAsap`, is a pipeline to characterize the effect of a mutation on an amino acid sequence. 
+**A**mino **A**cid **s**equence **a**nalysis **p**ipeline, as known as `AAsap` (now renamed to METRO), is a pipeline to characterize the effect of a mutation on an amino acid sequence. 
 
 AAsap takes a MAF-like file containing HGVS terms describing a given mutation and a FASTA file containing transcript sequences to determine the consequence of a mutation on a protein product. The `build` sub command can be used to generate a FASTA file containing CDS sequence of each transcript. The `input` sub command will merge and filter MAF files based on user-provided parameters. The `run` sub command will parse and tokenize HGVS terms describing coding DNA mutations. AAsap supports each major class of HGVS terms encoding for coding DNA mutations: substitution, deletion, insertions, duplications, and INDELS. AAsap _does not_ support HGVS tokenization of terms describing mutations in non-exonic (or non-CDS) regions like introns, 3'-UTR or 5'-UTR. AAsap will mutate a given coding DNA sequence based on the provided HGVS term and will translate that sequence into an amino acid sequence. AAsap will also truncate a given amino acid sequence +/- N amino acids relativve to a given mutation start site. The `predict` sub command will take the output of the `run` sub command and utilize [netMHCpan](https://services.healthtech.dtu.dk/service.php?NetMHCpan-4.1) to make predictions related to the mutations identified. In addition, it will filter and prepare outputs based on user-provided parameters.
 

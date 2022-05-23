@@ -860,7 +860,7 @@ def parsed_arguments():
           module load python/3.5
 
           # Step 2.) Run AASAP to find mutated protein products
-          ./aasap run --input  data/*.xlsx \\
+          ./aasap run --input  /data/*.xlsx \\
                          --output /scratch/$USER/AASAP \\
                          --transcripts transcripts.fa \\
                          --subset 30

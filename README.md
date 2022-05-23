@@ -1,21 +1,24 @@
-# METRO
+<div align="center">
+  <img src="data/METRO_logo.png" width="65%" height="65%">
 
-[![GitHub releases](https://img.shields.io/github/release/CCBR/AAsap)](https://github.com/CCBR/METRO/releases)  [![GitHub issues](https://img.shields.io/github/issues/CCBR/AAsap)](https://github.com/CCBR/METRO/issues) [![GitHub license](https://img.shields.io/github/license/CCBR/AAsap)](https://github.com/CCBR/METRO/blob/master/LICENSE)  
+  [![GitHub releases](https://img.shields.io/github/release/CCBR/METRO)](https://github.com/CCBR/METRO/releases)  [![GitHub issues](https://img.shields.io/github/issues/CCBR/METRO)](https://github.com/CCBR/METRO/issues) [![GitHub license](https://img.shields.io/github/license/CCBR/METRO)](https://github.com/CCBR/METRO/blob/master/LICENSE)  
 
+</div>
+  
 ### 1. Introduction  
 
-**A**mino **A**cid **s**equence **a**nalysis **p**ipeline, as known as `AAsap` (now renamed to METRO), is a pipeline to characterize the effect of a mutation on an amino acid sequence. 
+**M**ouse n**E**oan***T***igen p**R**edict***O***r pipeline, as known as `METRO` (formerly AASAP), is a pipeline to characterize the effect of a mutation on an amino acid sequences and to predict the binding of peptides to any MHC molecule using netMHCpan. 
 
-AAsap takes a MAF-like file containing HGVS terms describing a given mutation and a FASTA file containing transcript sequences to determine the consequence of a mutation on a protein product. The `build` sub command can be used to generate a FASTA file containing CDS sequence of each transcript. The `input` sub command will merge and filter MAF files based on user-provided parameters. The `run` sub command will parse and tokenize HGVS terms describing coding DNA mutations. AAsap supports each major class of HGVS terms encoding for coding DNA mutations: substitution, deletion, insertions, duplications, and INDELS. AAsap _does not_ support HGVS tokenization of terms describing mutations in non-exonic (or non-CDS) regions like introns, 3'-UTR or 5'-UTR. AAsap will mutate a given coding DNA sequence based on the provided HGVS term and will translate that sequence into an amino acid sequence. AAsap will also truncate a given amino acid sequence +/- N amino acids relativve to a given mutation start site. The `predict` sub command will take the output of the `run` sub command and utilize [netMHCpan](https://services.healthtech.dtu.dk/service.php?NetMHCpan-4.1) to make predictions related to the mutations identified. In addition, it will filter and prepare outputs based on user-provided parameters.
+METRO takes a VCF file(s) and performs filtering and pre-processing for the pipeline input. Then, an MAF-like file containing HGVS terms describing a given mutation and a FASTA file containing transcript sequences are used to determine the consequence of a mutation on a protein product. The `build` sub command can be used to generate a FASTA file containing CDS sequence of each transcript. The `input` sub command will merge and filter MAF files based on user-provided parameters. The `run` sub command will parse and tokenize HGVS terms describing coding DNA mutations. METRO supports each major class of HGVS terms encoding for coding DNA mutations: substitution, deletion, insertions, duplications, and INDELS. METRO _does not_ support HGVS tokenization of terms describing mutations in non-exonic (or non-CDS) regions like introns, 3'-UTR or 5'-UTR. METRO will mutate a given coding DNA sequence based on the provided HGVS term and will translate that sequence into an amino acid sequence. METRO will also truncate a given amino acid sequence +/- N amino acids relativve to a given mutation start site. The `predict` sub command will take the output of the `run` sub command and utilize [netMHCpan](https://services.healthtech.dtu.dk/service.php?NetMHCpan-4.1) to make predictions related to the mutations identified. In addition, it will filter and prepare outputs based on user-provided parameters.
 
 ### 2. System Requirements
 
-`aasap` executable is composed of several inter-related sub commands. The `build` sub command requires that `samtools`, `gffread` from the cufflinks, and `python` are installed on the target system. the `predict` sub command requires that [netMHCpan](https://services.healthtech.dtu.dk/service.php?NetMHCpan-4.1) is available in user's $PATH. A virtual environment containing the required python packages to run aasap can be built from our `requirements.txt`. Aasap is compatiable with `python>=2.7` and `python>=3.5` (with preference to the latter).
+`metro` executable is composed of several inter-related sub commands. The `build` sub command requires that `samtools`, `gffread` from the cufflinks, and `python` are installed on the target system. the `predict` sub command requires that [netMHCpan](https://services.healthtech.dtu.dk/service.php?NetMHCpan-4.1) is available in user's $PATH. A virtual environment containing the required python packages to run metro can be built from our `requirements.txt`. METRO is compatiable with `python>=2.7` and `python>=3.5` (with preference to the latter).
 
 If you are on biowulf, these dependencies can be met by running the following command:
 ```bash
 # Grab an interactive node
-# Do not run aasap on the head node!
+# Do not run metro on the head node!
 srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty bash
 module purge
 module load cufflinks samtools python/3.5
@@ -23,21 +26,21 @@ module load cufflinks samtools python/3.5
 
 ### 3. Build Resources
 
-AAsap has a `build` sub command to create any required reference files for the `run` sub command. The `build` sub command will generate a reference file containing the transcriptome (i.e. CDS region of each transcript) in FASTA format from a genomic FASTA file and an annotation in GTF format. The sequence of each transcript annotated in the GTF file will be reported in this transcripts FASTA file. This file can then be provided to the `--transcripts` option of the `run` sub command. When the `build` sub command is executed, the transcripts FASTA file (named _transcripts.fa_) will be generated in the defined output directory. 
+METRO has a `build` sub command to create any required reference files for the `run` sub command. The `build` sub command will generate a reference file containing the transcriptome (i.e. CDS region of each transcript) in FASTA format from a genomic FASTA file and an annotation in GTF format. The sequence of each transcript annotated in the GTF file will be reported in this transcripts FASTA file. This file can then be provided to the `--transcripts` option of the `run` sub command. When the `build` sub command is executed, the transcripts FASTA file (named _transcripts.fa_) will be generated in the defined output directory. 
 
-It is important to note that when building reference files for AAsap, you should used the same genomic FASTA file and GTF file that was used to call and annotate your variants. If a transcript is reported in the MAF file but cannot be found in the provided GTF file, a warning message will be produced to standard error. This warning message may indicate that the genomic FASTA and/or the GTF file you provided is not correct.
+It is important to note that when building reference files for METRO, you should used the same genomic FASTA file and GTF file that was used to call and annotate your variants. If a transcript is reported in the MAF file but cannot be found in the provided GTF file, a warning message will be produced to standard error. This warning message may indicate that the genomic FASTA and/or the GTF file you provided is not correct.
 
 #### 3.1 Build Synposis
 
-The `./aasap` executable is composed of several inter-related sub commands. Please see `./aasap -h` for all available options. The synopsis for the `build` sub command   shows its parameters and their usage. Optional parameters are shown in square brackets.
+The `./metro` executable is composed of several inter-related sub commands. Please see `./metro -h` for all available options. The synopsis for the `build` sub command   shows its parameters and their usage. Optional parameters are shown in square brackets.
 
 ```
-$ ./aasap build [-h] --ref-fa REF_FA \
+$ ./metro build [-h] --ref-fa REF_FA \
                 --ref-gtf REF_GTF \
                 --output  OUTPUT 
 ```
 
-This part of the documentation describes options and concepts for the `./aasap build` sub command in more detail. With minimal configuration, the build sub command enables you to build reference file for the `./aasap run` sub command. Buidling refernce file for the run sub command is fast and easy! In its most basic form, `./aasap build` only has _three required inputs_.
+This part of the documentation describes options and concepts for the `./metro build` sub command in more detail. With minimal configuration, the build sub command enables you to build reference file for the `./metro run` sub command. Buidling refernce file for the run sub command is fast and easy! In its most basic form, `./metro build` only has _three required inputs_.
 
 #### 3.2 Required Build Arguments
 
@@ -97,22 +100,22 @@ srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty
 module purge
 module load cufflinks samtools
 
-# Step 1.) Build AASAP reference files
-aasap build --ref-fa GRCm39.primary_assembly.genome.fa \
+# Step 1.) Build METRO reference files
+metro build --ref-fa GRCm39.primary_assembly.genome.fa \
             --ref-gtf gencode.vM26.annotation.gtf \
-            --output /scratch/$USER/AASAP/refs/
+            --output /scratch/$USER/METRO/refs/
 ```
 
-### 4. Input AAsap
+### 4. Input METRO
 
-AAsap has a `input` sub command to generate a MAF input file from one or more MAF-like files. Input files will be filtered and merged dependent on user parameters provided. These options include: `--vafFilter` which represents the minimum value for average VAF (calculated as t_alt_count/t_depth), `passFilter` which represents the minimum number of input files with a filter rating of "PASS", `--impactFilter` which represents minimum number of input files with an impact rating of either "MODERATE" or "HIGH". 
+METRO has a `input` sub command to generate a MAF input file from one or more MAF-like files. Input files will be filtered and merged dependent on user parameters provided. These options include: `--vafFilter` which represents the minimum value for average VAF (calculated as t_alt_count/t_depth), `passFilter` which represents the minimum number of input files with a filter rating of "PASS", `--impactFilter` which represents minimum number of input files with an impact rating of either "MODERATE" or "HIGH". 
 
 #### 4.1 Input Synopsis
 
-The `./aasap` executable is composed of several inter-related sub commands. Please see `./aasap -h` for all available options. The synopsis for the input sub command shows its parameters and their usage. Optional parameters are shown in square brackets.
+The `./metro` executable is composed of several inter-related sub commands. Please see `./metro -h` for all available options. The synopsis for the input sub command shows its parameters and their usage. Optional parameters are shown in square brackets.
 
 ```
-$ ./aasap input [-h] --mafFiles MAFFILES \
+$ ./metro input [-h] --mafFiles MAFFILES \
                       --outputdir OUTPUTdir \
                       --outputprefix OUTPUTprefix \
                       [--vafFilter VAFFILTER] \
@@ -120,7 +123,7 @@ $ ./aasap input [-h] --mafFiles MAFFILES \
                       [--impactFilter IMPACTFILTER]
 ```
 
-This part of the documentation describes options and concepts for `./aasap input` sub command in more detail. With minimal configuration, the `input` sub command enables you to create filtered MAF files for the aasap `run` pipeline.
+This part of the documentation describes options and concepts for `./metro input` sub command in more detail. With minimal configuration, the `input` sub command enables you to create filtered MAF files for the metro `run` pipeline.
 
 #### 4.2 Required Input Arguments
 
@@ -141,7 +144,7 @@ Each of the following arguments are required. Failure to provide a required argu
 > **Path to an output directory.**   
 > *type: path*
 >   
-> This location is where the aasap will create all of its output files, also known as the pipeline's working directory. If the provided output directory does not exist, it will be created automatically.
+> This location is where the metro will create all of its output files, also known as the pipeline's working directory. If the provided output directory does not exist, it will be created automatically.
 > 
 > ***Example:*** 
 > `--outputdir /scratch/$USER/RNA_hg38`
@@ -201,7 +204,7 @@ Each of the following arguments are optional and do not need to be provided. Def
 
 #### 4.4 Input Example
 
-Filter MAF files in preparation of aasap run.
+Filter MAF files in preparation of metro run.
 
 ```bash 
 # Step 0.) Grab an interactive node
@@ -210,37 +213,37 @@ srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty
 module purge
 module load python/3.5
 
- # Step 1.) Run AASAP to find mutated protein products
- ./aasap input --mafFiles  /data/*.maf \
-             --outputdir /scratch/$USER/AASAP \
+ # Step 1.) Run METRO to find mutated protein products
+ ./metro input --mafFiles  /data/*.maf \
+             --outputdir /scratch/$USER/METRO \
              --outputprefix test \
              --vafFilter 0.2 \
              --passFilter 2 \
              --impactFilter 2
 ```
 
-### 5. Run AAsap
+### 5. Run METRO
 
-AAsap has a `run` sub command to generate a mutated amino acid sequence described by an HGVS term. AAsap takes a MAF-like file containing HGVS terms describing a given mutation and a FASTA file containing transcript sequences to determine the mutated amino acid sequence. The build sub command can be used to generate a FASTA file containing CDS sequence of each transcript. 
+METRO has a `run` sub command to generate a mutated amino acid sequence described by an HGVS term. METRO takes a MAF-like file containing HGVS terms describing a given mutation and a FASTA file containing transcript sequences to determine the mutated amino acid sequence. The build sub command can be used to generate a FASTA file containing CDS sequence of each transcript. 
 
-AAsap supports each major class of HGVS terms encoding for mutations in coding DNA sequences: substitution, deletion, insertions, duplications, and INDELS. AAsap does not support HGVS tokenization of terms describing mutations in non-exonic (or non-CDS) regions like intronic or UTR regions.
+METRO supports each major class of HGVS terms encoding for mutations in coding DNA sequences: substitution, deletion, insertions, duplications, and INDELS. METRO does not support HGVS tokenization of terms describing mutations in non-exonic (or non-CDS) regions like intronic or UTR regions.
 
-AAsap will also truncate a given amino acid sequence +/- N amino acids relativve to a given mutation start site. This feature can be controlled via the '--subset' option.
+METRO will also truncate a given amino acid sequence +/- N amino acids relativve to a given mutation start site. This feature can be controlled via the '--subset' option.
 
 #### 5.1 Run Synopsis
 
-The `./aasap` executable is composed of several inter-related sub commands. Please see `./aasap -h` for all available options. The synopsis for the run sub command shows its parameters and their usage. Optional parameters are shown in square brackets.
+The `./metro` executable is composed of several inter-related sub commands. Please see `./metro -h` for all available options. The synopsis for the run sub command shows its parameters and their usage. Optional parameters are shown in square brackets.
 
 ```
-$ ./aasap run [-h] [--subset SUBSET] \
+$ ./metro run [-h] [--subset SUBSET] \
                    --input INPUT [INPUT ...] \
                    --transcripts TRANSCRIPTS \
                    --output OUTPUT 
 ```
 
-This part of the documentation describes options and concepts for `./aasap run` sub command in more detail. With minimal configuration, the `run` sub command enables you to start running aasap pipeline.
+This part of the documentation describes options and concepts for `./metro run` sub command in more detail. With minimal configuration, the `run` sub command enables you to start running metro pipeline.
 
-Setting up the aasap is fast and easy! In its most basic form, `./aasap run` only has _three required inputs_.
+Setting up the metro is fast and easy! In its most basic form, `./metro run` only has _three required inputs_.
 
 #### 5.2 Required Run Arguments
 
@@ -251,7 +254,7 @@ Each of the following arguments are required. Failure to provide a required argu
 > **Input MAF-like file(s) to process.**  
 > *type: file*  
 > 
-> One or more MAF-like files can be provided. From the command-line, each input file should seperated by a space. Globbing is also supported! This makes selecting input files easier. Input MAF-like input files should be in an excel-like, CSV, or TSV format. For each input file a new output file will be generated in the specified output directory. Each file will end with the following extension: `.aasap.tsv`.
+> One or more MAF-like files can be provided. From the command-line, each input file should seperated by a space. Globbing is also supported! This makes selecting input files easier. Input MAF-like input files should be in an excel-like, CSV, or TSV format. For each input file a new output file will be generated in the specified output directory. Each file will end with the following extension: `.metro.tsv`.
 > 
 > ***Example:*** 
 > `--input data/*.xls*`
@@ -261,7 +264,7 @@ Each of the following arguments are required. Failure to provide a required argu
 > **Path to an output directory.**   
 > *type: path*
 >   
-> This location is where the aasap will create all of its output files, also known as the pipeline's working directory. If the provided output directory does not exist, it will be created automatically.
+> This location is where the metro will create all of its output files, also known as the pipeline's working directory. If the provided output directory does not exist, it will be created automatically.
 > 
 > ***Example:*** 
 > `--output /scratch/$USER/RNA_hg38`
@@ -301,7 +304,7 @@ Each of the following arguments are optional and do not need to be provided.
 
 #### 5.4 Run Example
 
-Run aasap with the references files generated in the build example.
+Run metro with the references files generated in the build example.
 
 ```bash 
 # Step 0.) Grab an interactive node
@@ -310,25 +313,25 @@ srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty
 module purge
 module load python/3.5
 
- # Step 1.) Run AASAP to find mutated protein products
- ./aasap run --input  /data/*.xlsx \
-             --output /scratch/$USER/AASAP \
-             --transcripts /scratch/$USER/AASAP/refs/transcripts.fa \
+ # Step 1.) Run METRO to find mutated protein products
+ ./metro run --input  /data/*.xlsx \
+             --output /scratch/$USER/METRO \
+             --transcripts /scratch/$USER/METRO/refs/transcripts.fa \
              --subset 30
 ```
 
 
 
-### 6. Predict AAsap
+### 6. Predict METRO
 
-AAsap has a `predict` sub command which utilizes the tool netMHCpan to predict the binding of peptides to any MHC molecule of known sequence using artificial neural networks (ANNs), then perform filtering of output based on user-provided parameters. This sub command uses the output of the `run` sub command for processing, submitting filtered file to netMHCpan, and then filtering the resulting files with user-provided parameters. Users select alleles of interest (`--alleleList`), length of kmers (`kmerLength`), length of peptide sequence (`--peptideLength`), binding affinity threshold ranges (`--highBind` and `--lowBind`).
+METRO has a `predict` sub command which utilizes the tool netMHCpan to predict the binding of peptides to any MHC molecule of known sequence using artificial neural networks (ANNs), then perform filtering of output based on user-provided parameters. This sub command uses the output of the `run` sub command for processing, submitting filtered file to netMHCpan, and then filtering the resulting files with user-provided parameters. Users select alleles of interest (`--alleleList`), length of kmers (`kmerLength`), length of peptide sequence (`--peptideLength`), binding affinity threshold ranges (`--highBind` and `--lowBind`).
 
 #### 6.1 Predict Synopsis
 
-The `./aasap` executable is composed of several inter-related sub commands. Please see `./aasap -h` for all available options. The synopsis for the predict sub command shows its parameters and their usage. Optional parameters are shown in square brackets.
+The `./metro` executable is composed of several inter-related sub commands. Please see `./metro -h` for all available options. The synopsis for the predict sub command shows its parameters and their usage. Optional parameters are shown in square brackets.
 
 ```
-$ ./ aasap predict [-h] --mutationFile MUTATIONFILE \
+$ ./ metro predict [-h] --mutationFile MUTATIONFILE \
                               --alleleList ALLELELIST \
                               --outputdir OUTPUTDIR \
                               --outprefix OUTPREFIX \
@@ -338,7 +341,7 @@ $ ./ aasap predict [-h] --mutationFile MUTATIONFILE \
                               [--lowbind LOWBIND]
 ```
 
-This part of the documentation describes options and concepts for `./aasap input` sub command in more detail. With minimal configuration, the `predict` sub command enables you to generate prediction files for each mutated sequence identified in the aasap `run` sub command.
+This part of the documentation describes options and concepts for `./metro input` sub command in more detail. With minimal configuration, the `predict` sub command enables you to generate prediction files for each mutated sequence identified in the metro `run` sub command.
 
 #### 6.2 Required Predict Arguments
 
@@ -349,10 +352,10 @@ Each of the following arguments are required. Failure to provide a required argu
 > **Input TSV mutation file to process.**  
 > *type: file*  
 > 
-> Input file in tsv format. This can be the output of the AASAP run command
+> Input file in tsv format. This can be the output of the METRO run command
 > 
 > ***Example:*** 
-> `--mutationFile data/test_Variant.aasap.tsv`
+> `--mutationFile data/test_Variant.metro.tsv`
 >
 > ***Required headers:***
 > Required header (in any order):
@@ -367,7 +370,7 @@ Each of the following arguments are required. Failure to provide a required argu
 > **Path to an output directory.**   
 > *type: path*
 >   
-> This location is where the aasap will create all of its output files, also known as the pipeline's working directory. If the provided output directory does not exist, it will be created automatically.
+> This location is where the metro will create all of its output files, also known as the pipeline's working directory. If the provided output directory does not exist, it will be created automatically.
 > 
 > ***Example:*** 
 > `--outputdir /scratch/$USER/RNA_hg38`
@@ -446,12 +449,12 @@ srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty
 module purge
 module load python/3.5
 
- # Step 1.) Run AASAP predict to find the binding of peptides to any MHC molecule
- ./aasap predict \
-                --mutationFile /scratch/$USER/AASAP/test_Variant.asap.tsv \
+ # Step 1.) Run METRO predict to find the binding of peptides to any MHC molecule
+ ./metro predict \
+                --mutationFile /scratch/$USER/METRO/test_Variant.asap.tsv \
                 --allelList H-2-Ld,H-2-Dd,H-2-Kb \
                 --peptideLength 8,9,10,11 \
                 --kmerLength 21 \
-                --outputdir /scratch/$USER/AASAP/ \
+                --outputdir /scratch/$USER/METRO/ \
                 --outprefix test
 ```

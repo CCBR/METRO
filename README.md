@@ -1,7 +1,10 @@
-# METRO
+<div align="center">
+  <img src="data/METRO_logo.png" width="65%" height="65%">
 
-[![GitHub releases](https://img.shields.io/github/release/CCBR/METRO)](https://github.com/CCBR/METRO/releases)  [![GitHub issues](https://img.shields.io/github/issues/CCBR/METRO)](https://github.com/CCBR/METRO/issues) [![GitHub license](https://img.shields.io/github/license/CCBR/METRO)](https://github.com/CCBR/METRO/blob/master/LICENSE)  
+  [![GitHub releases](https://img.shields.io/github/release/CCBR/METRO)](https://github.com/CCBR/METRO/releases)  [![GitHub issues](https://img.shields.io/github/issues/CCBR/METRO)](https://github.com/CCBR/METRO/issues) [![GitHub license](https://img.shields.io/github/license/CCBR/METRO)](https://github.com/CCBR/METRO/blob/master/LICENSE)  
 
+</div>
+  
 ### 1. Introduction  
 
 **M**ouse n**E**oan***T***igen p**R**edict***O***r pipeline, as known as `METRO` (formerly AASAP), is a pipeline to characterize the effect of a mutation on an amino acid sequences and to predict the binding of peptides to any MHC molecule using netMHCpan. 

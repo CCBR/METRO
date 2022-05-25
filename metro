@@ -500,14 +500,15 @@ def predict(sub_args):
     # Run netMHC, with parallelization via RAY
     netmhc_intermed = os.path.join(sub_args.outputDir, sub_args.outprefix + "_output_netmhc_")
     netmhc_raw_output = os.path.join(sub_args.outputDir, sub_args.outprefix + "_output_netmhc_raw.tsv")
-    submit_to_ray = "{} {} > {}".format(
+    process = "python src/predictor.py {} {} {} {} {}".format(
         sub_args.alleleList,
         netMHC_input,
         sub_args.peptideLength,
         netmhc_intermed,
         netmhc_raw_output
     )
-    predictor(submit_to_ray)
+    print("Running: " + process)
+    exitcode = bash(process)
 
     # Read in output of netMHC
     # Drop duplicate rows (for headers)

@@ -48,7 +48,7 @@ def bash(cmd, interpreter='/bin/bash', strict=True, **kwargs):
 
     return exitcode
 
-# source bash command
+# run netMHCpan on individual allele with RAY parallelizing jobs
 @ray.remote 
 def run_netMHC(alleleid, netMHC_input, peptideLength, netmhc_intermed): 
     print("RUNNING" + alleleid)
@@ -74,13 +74,13 @@ def run_netMHC(alleleid, netMHC_input, peptideLength, netmhc_intermed):
 
     return netmhc_raw
 
+# once each allele has completed, create final output file and merge results
 def process_results(raw_file,final_file):
     # add intermediate raw file to the output file
     with open(final_file, 'a+') as outfile:
         with open(raw_file) as infile:
             for line in infile:
                 outfile.write(line)
-
 
 if __name__ == '__main__':
 

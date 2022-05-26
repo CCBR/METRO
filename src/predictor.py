@@ -74,14 +74,6 @@ def run_netMHC(alleleid, netMHC_input, peptideLength, netmhc_intermed):
 
     return netmhc_raw
 
-# once each allele has completed, create final output file and merge results
-def process_results(raw_file,final_file):
-    # add intermediate raw file to the output file
-    with open(final_file, 'a+') as outfile:
-        with open(raw_file) as infile:
-            for line in infile:
-                outfile.write(line)
-
 if __name__ == '__main__':
 
     # List of alleles to process
@@ -101,12 +93,6 @@ if __name__ == '__main__':
     netMHC_input=sys.argv[2]
     peptideLength=sys.argv[3]
     netmhc_intermed=sys.argv[4]
-    netmhc_final=sys.argv[5]
 
     # run netMHC in parallel
     result_ids = [run_netMHC.remote(id, netMHC_input, peptideLength, netmhc_intermed) for id in alleleList] 
-    
-    # as results complete, merge all final results into one df
-    while len(result_ids): 
-        done_id, result_ids = ray.wait(result_ids) 
-        process_results(ray.get(done_id[0]),netmhc_final)

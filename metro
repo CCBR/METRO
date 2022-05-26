@@ -499,40 +499,36 @@ def predict(sub_args):
     
     # Run netMHC, with parallelization via RAY
     netmhc_intermed = os.path.join(sub_args.outputDir, sub_args.outprefix + "_output_netmhc_")
-    netmhc_raw_output = os.path.join(sub_args.outputDir, sub_args.outprefix + "_output_netmhc_raw.tsv")
-    process = "python src/predictor.py {} {} {} {} {}".format(
+    process = "python src/predictor.py {} {} {} {}".format(
         sub_args.alleleList,
         netMHC_input,
         sub_args.peptideLength,
-        netmhc_intermed,
-        netmhc_raw_output
+        netmhc_intermed
     )
     print("Running: " + process)
     exitcode = bash(process)
 
-    # Read in output of netMHC
-    # Drop duplicate rows (for headers)
-    # Remove rows which includes the first row of only the allele name and 
-    # the second row which includes the header (header consists of dup values)
+    # Read in output of netMHC    
     print("--Post-Processing")
-    err('----netMHCpan raw output created {}'.format(netmhc_raw_output))
-    df = csv(netmhc_raw_output, index_col=None, header=None,sep="\t")
-    df.drop_duplicates()
-    df.drop([0,1],inplace=True)
-    
-    # set counter for position of allele specific output
-    counter=3
-    
-    # Subset df to include four col of general peptide information
-    # and columns relating to specific allele. Add allele name column.
     df_list=[]
-    for allele in split_alleleList:        
-        df_sub = df.iloc[:, np.r_[0:3, (counter):(counter+6)]]
-        df_sub = df_sub.assign(allele=allele)
-        df_sub.columns = ['Pos', 'Peptide', 'ID', 'core', 
+    for allele in split_alleleList:
+        #read in intermed output of netmhc
+        netmhc_raw_output=os.path.join(netmhc_intermed + "raw_" + allele + ".tsv")
+        df_tmp = csv(netmhc_raw_output, index_col=None, header=None,sep="\t")
+        
+        # Remove first two rows: 
+        # the first row includes only the allele name  
+        # the second row includes the header
+        df_tmp.drop([0],inplace=True)
+
+        # drop cols Ave, NB
+        df_tmp.drop([9,10], axis=1,inplace=True)
+
+        # add column ID of the allele
+        df_tmp = df_tmp.assign(allele=allele)
+        df_tmp.columns = ['Pos', 'Peptide', 'ID', 'core', 
                         'icore', 'EL-score', 'EL_Rank', 'BA-score', 'BA_Rank','allele']
-        df_list.append(df_sub)
-        counter=counter+6
+        df_list.append(df_tmp)
     df = pd.concat(df_list)
 
     # Search for up verification AA sequence in output peptide, if is does not exist search for

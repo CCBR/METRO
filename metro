@@ -493,10 +493,6 @@ def predict(sub_args):
     netMHC_input = os.path.join(sub_args.outputDir,sub_args.outprefix + "_input_netmhc.tsv")
     df.to_csv(netMHC_input, columns=["header", "kmer_Seqs",], header=False, index=False, sep="\n")
 
-    # Check for required runtime dependencies
-    # Build command needs samtools and gffread from cufflinks package
-    require(cmds=["samtools", "cufflinks"], suggestions=["samtools", "cufflinks"])
-    
     # Run netMHC, with parallelization via RAY
     netmhc_intermed = os.path.join(sub_args.outputDir, sub_args.outprefix + "_output_netmhc_")
     process = "python src/predictor.py {} {} {} {}".format(

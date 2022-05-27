@@ -5,14 +5,18 @@
 About:
     This is the main entry for the METRO pipeline.
 USAGE:
-	$ metro <build|run> [OPTIONS]
+	$ metro <build|run|input|predict> [OPTIONS]
 Example:
     $ metro build -h
     $ metro run -h
+    $ metro input -h
+    $ metro predict -h
 """
 
 from __future__ import print_function
-from src.utils import (initialize, 
+from src import version 
+from src.utils import (Colors,
+    initialize, 
     fatal,
     err,
     require,
@@ -36,9 +40,11 @@ import argparse, textwrap
 import numpy as np
 import pandas as pd
 
-__author__ = 'Skyler Kuhn'
-__version__ = 'v1.2.1'
-__email__ = 'kuhnsa@nih.gov'
+__author__ = 'Skyler Kuhn, Samantha Chill'
+__version__ = version
+__email__ = 'kuhnsa@nih.gov, samantha.sevilla@nih.gov'
+_name = os.path.basename(sys.argv[0])
+_description = 'Mouse nEoanTigen pRedictOr'
 
 
 def bash(cmd, interpreter='/bin/bash', strict=True, **kwargs):
@@ -112,17 +118,19 @@ def build(sub_args):
 
 
 def input(sub_args):
-    """Creates input files for the Mouse Neoantigen Predictor from MAF files.
+    """Creates input files for the metro from MAF files.
     Uses user-inputs to determine filtering thresholds.
+    @param sub_args <parser.parse_args() object>:
+        Parsed arguments for run sub-command
     """
     # Check that col names exist, if they don't exit and error
     def check(col,df_in):
         if col not in df_in:
             fatal("""\n\tThe following column is required in input '{}'.""".format(col))
     
-    # for each input file, read in file
-    # check for colun header and create variant id (VIDA)
-    # calculate the average VAF and append df to list
+    # Read in each input file and check for column 
+    # header and create variant id (VIDA), calculate 
+    # the average VAF and append df to list
     print("--Processing input files")
     df_list=[]
     for file_input in sub_args.mafFiles:
@@ -132,7 +140,7 @@ def input(sub_args):
         # Create fileID to track input
         file_name=file_input.split(".")[0]
 
-        # read input MAF file
+        # Read input MAF file
         df_sub=pd.read_csv(file_input,delimiter="\t",skiprows=1)
     
         # Check required cols are in input file; if they are missing 
@@ -146,7 +154,7 @@ def input(sub_args):
         df_sub = df_sub.assign(file_id=file_name)
         
         # Add Variant ID (VIDA): 
-        ## Example: [Hugo_Symbol]_[Start_Position]_[End_Position]_[Reference_Allele][Tumor_Seq_Allele1][Tumor_Seq_Allele2]
+        # Example: [Hugo_Symbol]_[Start_Position]_[End_Position]_[Reference_Allele][Tumor_Seq_Allele1][Tumor_Seq_Allele2]
         df_sub["VIDA"] = df_sub["Hugo_Symbol"] + "_" + df_sub["Start_Position"].astype(str) + "_" + df_sub["End_Position"].astype(str) + "_" + df_sub["Reference_Allele"] + df_sub["Tumor_Seq_Allele1"] + df_sub["Tumor_Seq_Allele2"]
 
         # Calculate average VAF: t_alt_count/t_depth
@@ -155,10 +163,10 @@ def input(sub_args):
         # Append to df list
         df_list.append(df_sub)
 
-    #merge all file dfs
+    # Merge all file dfs
     df_merged = pd.concat(df_list)
 
-    # first level of filtering - 
+    # First level of filtering - 
     # Determine VIDA count value withib df
     # and include only VIDA's found in all input files
     df_value_counts=pd.DataFrame(df_merged['VIDA'].value_counts(dropna=True, sort=True))
@@ -166,7 +174,7 @@ def input(sub_args):
     df_value_counts.columns = ['VIDA', 'VIDA_Counts']
     df_filt = df_value_counts[df_value_counts["VIDA_Counts"] >= len(sub_args.mafFiles)]
     
-    # second level of filtering - 
+    # Second level of filtering - 
     # For each VIDA determine which also have:
     # IMPACT (HIGH or MOD) >= sub_args.impactFilter
     # FILTER (PASS) >= sub_args.passFilter
@@ -193,11 +201,11 @@ def input(sub_args):
         if ((av_VAF >= sub_args.vafFilter) &  (impact_count >= sub_args.impactFilter) & (filter_count >= sub_args.passFilter)):
             vida_list.append(vida_id)
 
-    # subset df to include only VIDAs that meet filtering requirements
+    # Subset df to include only VIDAs that meet filtering requirements
     df_final = df_merged[df_merged['VIDA'].isin(vida_list)]
     df_out=df_final.drop_duplicates()
 
-    #name the file the filter name
+    # Name the file the filter name
     # create METRO run input file
     VAF_val=str(int(sub_args.vafFilter*100))    
     assap_input_file = os.path.join(sub_args.outputDir, sub_args.outprefix + "_VAF" + VAF_val + "_Variant.csv")
@@ -361,7 +369,10 @@ def run(sub_args):
 
 def predict(sub_args):
     """
-    Runs the prediction tool netMHC following output of the Amino Acid sequence analysis pipeline.
+    Runs the prediction tool netMHC with output of the run sub command. 
+    This step requies that netMHCpan is installed and in a user's $PATH.
+    @param sub_args <parser.parse_args() object>:
+        Parsed arguments for run sub-command
     """
     # Check whether NETMHC is executable
     from shutil import which
@@ -372,15 +383,21 @@ def predict(sub_args):
 
     # Check kmer length is an odd number
     if (sub_args.kmerLength % 2 ) == 0:
-        fatal("WARNNING: --kmerLength must be an odd number. Please revise input and try again")
+        # TODO: add a lambda function to enforce 
+        # this type/assumption with argparse  
+        fatal("WARNING: --kmerLength must be an odd number. Please revise input and try again")
 
     # Check allele list is <=20 in length
     split_alleleList=sub_args.alleleList.split(",")
     if len(split_alleleList)>20:
-        fatal("WARNNING: --kmerLength must be an odd number. Please revise input and try again")
+        # TODO: add a lambda function to enforce 
+        # this type/assumption with argparse
+        fatal("WARNING: --kmerLength must be an odd number. Please revise input and try again")
 
-    # Parse field of interest from each excel file. This file can be the output of METRO run
-    # or maybe an input created by a user. Input file is required have the following fields:
+    # Parse fields of interest from each excel file. 
+    # This file can be the output of METRO run or maybe 
+    # an input created by a user. Input file is required 
+    # have the following fields:
     # - Hugo_Symbol
     # - Transcript_ID
     # - Variant_Classification	
@@ -392,10 +409,10 @@ def predict(sub_args):
     subset=['Hugo_Symbol','Transcript_ID','Variant_Classification',
             'WT_Subset_AA_Sequence','Mutated_Subset_AA_Sequence'])
 
-    # remove duplicate values
+    # Remove duplicate values
     df = df.drop_duplicates()
 
-    # create fasta header line
+    # Create fasta header line
     df["header"] = ">" + df["Transcript_ID"] + "_" + df["Hugo_Symbol"]
 
     # for each potential mutation
@@ -410,17 +427,19 @@ def predict(sub_args):
         # if the mt_str and the wt_str are the same, then skip
         if wt_str != mt_str:
 
-            # determine where the differences are between the mt_str and wt_str
-            # first check with mt_str as the source, if there is no difference because
-            # the string stops early on the mt_str use the wt_str as the source to capture
+            # Determine where the differences are between 
+            # the mt_str and wt_str. First check with mt_str 
+            # as the source, if there is no difference because
+            # the string stops early on the mt_str use the 
+            # wt_str as the source to capture
             try:
                 diff_loc=[mut_loc for mut_loc in range(len(mt_str)) if wt_str[mut_loc] != mt_str[mut_loc]]
             except:
                 diff_loc=[mut_loc for mut_loc in range(len(wt_str)) if wt_str[mut_loc] != mt_str[mut_loc]]
 
-            # handle frameshifts differently than all other mutation types
+            # Handle frameshifts differently than other mutation types
             if "Frame" in mut_type:
-                # set prediction position up and downstream of mutation
+                # Set prediction position up and downstream of mutation
                 # where downstream is all AA following mutation,
                 # where upstream is 10 AA upstream of mutation or 
                 # until the start of the seq
@@ -429,13 +448,14 @@ def predict(sub_args):
                 down_loc = len(mt_str)
 
             else:
-                # set prediction position up and downstream of mutation
+                # Set prediction position up and downstream of mutation
                 # to the length of the kmer with the mutation centered
                 # add one to downstream for inclusive range locations
                 up_loc = int(diff_loc[0]) - (sub_args.kmerLength-1)/2
                 down_loc = int(diff_loc[0]) + (sub_args.kmerLength-1)/2 + 1
 
-                # check peptide length to ensure kmer length is possible with mutation location
+                # Check peptide length to ensure kmer length is possible within 
+                # the defined mutation location.
                 # if the peptide is shorter than the kmer then use the whole peptide
                 # if it's too short on the upstream then have a longer downstream
                 # if it's too short on the downstream then have a longer upstream
@@ -449,7 +469,7 @@ def predict(sub_args):
                 elif (len(mt_str) <= down_loc):
                     down_loc = len(mt_str)
 
-            # set verification position up and downstream of mutation
+            # Set verification position up and downstream of mutation
             # where upstream is 3 AA proceeding mutation or until the start of the seq
             # where downstream is 3 AA following mutation or until the end of the seq
             up_verify = int(diff_loc[0]) - 3
@@ -457,49 +477,50 @@ def predict(sub_args):
             if (up_loc < 0): up_verify = 0 
             if (len(mt_str) <= down_verify): down_verify=len(mt_str) 
 
-            # add kmer AA sequences to predict
+            # Add kmer AA sequences to predict
             kmer_list.append(mt_str[int(up_loc):int(down_loc)])
 
-            # save up/downstream windows
+            # Save up/downstream windows
             # example: SLEYVSTRQPLRRSLRSCSTP with mutation at pos 10 L
             # up_window is RQPL | down_window is LRRS
             up_list.append(mt_str[int(up_verify):int(diff_loc[0]+1)])
             down_list.append(mt_str[int(diff_loc[0]):int(down_verify)])
         else:
-            # create list of kmer AA sequences to predict
+            # Create list of kmer AA sequences to predict
             kmer_list.append("")
 
-            # save up/downstream windows
+            # Save up/downstream windows
             # example: SLEYVSTRQPLRRSLRSCSTP with mutation at pos 10 L
             # up_window is RQPL | down_window is LRRS
             up_list.append("")
             down_list.append("")        
   
-    # add lists to df
+    # Add lists to df
     df["kmer_Seqs"]=kmer_list
     df["up_verify"]=up_list
     df["down_verify"]=down_list
 
-    # subset df for only samples with a kmer, drop duplicates
+    # Subset df for only samples with a kmer, drop duplicates
     df = df.dropna(thresh=1)
     df = df.drop_duplicates()
 
-    # create a dicts for use downstream
+    # Create a dicts for use downstream
     symbol_dict = dict(zip(df.kmer_Seqs, df.Hugo_Symbol))
     up_dict = dict(zip(df.kmer_Seqs, df.up_verify))
     down_dict = dict(zip(df.kmer_Seqs, df.down_verify))
 
-    #create file in fasta format
+    # Create file in fasta format
     netMHC_input = os.path.join(sub_args.outputDir,sub_args.outprefix + "_input_netmhc.tsv")
     df.to_csv(netMHC_input, columns=["header", "kmer_Seqs",], header=False, index=False, sep="\n")
 
     # Run netMHC, with parallelization via RAY
     netmhc_intermed = os.path.join(sub_args.outputDir, sub_args.outprefix + "_output_netmhc_")
-    process = "python src/predictor.py {} {} {} {}".format(
+    process = "python src/predictor.py {} {} {} {} {}".format(
         sub_args.alleleList,
         netMHC_input,
         sub_args.peptideLength,
-        netmhc_intermed
+        netmhc_intermed,
+        str(sub_args.threads)
     )
     print("Running: " + process)
     exitcode = bash(process)
@@ -508,7 +529,7 @@ def predict(sub_args):
     print("--Post-Processing")
     df_list=[]
     for allele in split_alleleList:
-        #read in intermed output of netmhc
+        # Read in intermed output of netmhc
         netmhc_raw_output=os.path.join(netmhc_intermed + "raw_" + allele + ".tsv")
         df_tmp = csv(netmhc_raw_output, index_col=None, header=None,sep="\t")
         
@@ -517,35 +538,38 @@ def predict(sub_args):
         # the second row includes the header
         df_tmp.drop([0],inplace=True)
 
-        # drop cols Ave, NB
+        # Drop cols Ave, NB
         df_tmp.drop([9,10], axis=1,inplace=True)
 
-        # add column ID of the allele
+        # Add column ID of the allele
         df_tmp = df_tmp.assign(allele=allele)
         df_tmp.columns = ['Pos', 'Peptide', 'ID', 'core', 
                         'icore', 'EL-score', 'EL_Rank', 'BA-score', 'BA_Rank','allele']
         df_list.append(df_tmp)
     df = pd.concat(df_list)
 
-    # Search for up verification AA sequence in output peptide, if is does not exist search for
-    # downstream verification sequence. If neither exist the mutation is not in sequence and 
-    # rows should be removed from futher analysis
-    # For example, a 9-mer could be generaterd in the flanking 9 AA sequence of a 21-mer region
-    # Must be down after df transformation as each core peptide analyzed in a row across alleles
-    # may be different from one another
+    # Search for up verification AA sequence in output peptide, 
+    # if is does not exist search for downstream verification 
+    # sequence. If neither exist the mutation is not in sequence 
+    # and rows should be removed from futher analysis.
+    # For example, a 9-mer could be generated in the flanking 
+    # 9 AA sequence of a 21-mer region. Must be down after df 
+    # transformation as each core peptide analyzed in a row 
+    # across alleles may be different from one another.
     keeprows_list=[]
     peptidelen_list=[]
     for i,row in df.iterrows():
         search_key=str(row['Peptide'])
         pep_len=len(search_key)
 
-        # search core peptide for upstream/downstream keys
+        # Search core peptide for upstream/downstream keys
         res_up = [val for key, val in up_dict.items() if search_key in key]
         res_down = [val for key, val in down_dict.items() if search_key in key]
 
-        # some peptides have more than one mutation and therefore the sub AA sequence
-        # will match to more than one key. Check if there is a match in the upstream
-        # validator, if there isn't then check downstream
+        # Some peptides have more than one mutation and therefore 
+        # the sub AA sequence will match to more than one key. 
+        # Check if there is a match in the upstream validator, 
+        # if there isn't then check downstream.
         res="N"
         for up_loc in res_up:
             if up_loc in search_key: res="Y"
@@ -553,14 +577,14 @@ def predict(sub_args):
             for down_loc in res_down:
                 if down_loc in search_key: res="Y"
         
-        # append values to list
+        # Append values to list
         keeprows_list.append(res)
         peptidelen_list.append(pep_len)
 
-    # add peptide length as col
+    # Add peptide length as col
     df["peptide_length"]=peptidelen_list
 
-    # drop rows that were not validated
+    # Drop rows that were not validated
     df["keeprows"]=keeprows_list
     df.drop(df.index[df['keeprows'] == "N"], inplace = True)
 
@@ -605,15 +629,27 @@ def parsed_arguments():
     also must be updated.
     """
 
+    # Add stylized terminal name and description
+    c = Colors
+    styled_name = "{0}{1}METRO{2}".format(c.bold, c.cyan, c.end)
+    description = "{0}{1}{2}".format(c.bold, _description, c.end)
+    named_description = '{0}{1}: {2}{3}'.format(
+        c.bg_black, 
+        styled_name, 
+        description, 
+        c.end
+    )    
+
     # Create a top-level parser
-    parser = argparse.ArgumentParser(description = 'METRO: \
-                                                    Mouse nEoanTigen pRedictOr')
+    parser = argparse.ArgumentParser(
+        description = named_description
+    )
 
     # Adding Verison information
     parser.add_argument('--version', action = 'version', version='%(prog)s {}'.format(__version__))
 
     # Create sub-command parser
-    subparsers = parser.add_subparsers(help='List of available sub-commands')
+    subparsers = parser.add_subparsers()
     
     # Options for the "build" sub-command
     # Grouped sub-parser arguments are currently not supported.
@@ -622,71 +658,102 @@ def parsed_arguments():
     # options that are required! Please note: if a required arg is added the
     # description below should be updated (i.e. update usage and add new option)
     required_build_options = textwrap.dedent("""\
-        usage: metro build [-h] --ref-fa REF_FA 
-                                --ref-gtf REF_GTF
-                                --outputDir OUTPUTDIR
+        {0}
 
-        Builds reference files for the Amino Acid sequence analysis pipeline 
+        {2}{3}Usage:{5}
+          $ {1} build [--help] \\
+                    --ref-fa REF_FA \\
+                    --ref-gtf REF_GTF \\
+                    --outputDir OUTPUTDIR
+
+        {2}{3}Description:{5}
+          Builds reference files for the mouse neoantigen prediction pipeline 
         from a genomic FASTA file and an annotation in GTF format. The build 
         sub command creates a FASTA file containing the sequence of each 
         transcript. 
 
-        required arguments:
-          --ref-fa REF_FA       Genomic FASTA file of the reference genome.
+        {2}{3}Required arguments:{5}
+          --ref-fa REF_FA        Genomic FASTA file of the reference genome.
+                                 This file can be downloaded from GENCODE. It
+                                 should match the genomic FASTA file used for 
+                                 variant calling.
 
-          --ref-gtf REF_GTF     GTF file for the reference genome.
+          --ref-gtf REF_GTF      GTF file for the reference genome. This file
+                                 can be downloaded from GENCODE. Ideally, this 
+                                 file should match the GTF file version your 
+                                 variant annotation uses.   
 
-          --outputDir OUTPUTDIR       Path to an output directory. This path
-                                is where the pipeline will create all 
-                                of its output files. If the provided 
-                                output directory does not exist, it 
-                                will be created. After the build sub
-                                command completes, the transcripts.fa 
-                                transcriptomic FASTA file can be used
-                                or supplied to the run sub command.
-        """)
+          --outputDir OUTPUTDIR  Path to an output directory. This path is where 
+                                 the pipeline will create all of its output files. 
+                                 If the provided output directory does not exist, 
+                                 it will be created. After the build sub command 
+                                 completes, the transcripts.fa or transcriptomic 
+                                 FASTA file can be used or supplied to the run 
+                                 sub command.
+        
+        {2}{3}Optional arguments:{5}
+          -h, --help             Show usage information, help message, and exit.
+        """.format(named_description, _name, c.bold, c.url, c.italic, c.end))
 
     # Display example usage in epilog
     build_epilog = textwrap.dedent("""\
-        example:
-          # Step 1.) Grab an interactive node (do not run on head node)
-          sinteractive --mem=8g --cpus-per-task=4
+        {2}{3}Example:{4}
+          # Step 1.) Grab an interactive node 
+          # do not run on head node!
+          srun -N 1 -n 1 --time=1:00:00 --mem=8gb  --cpus-per-task=2 --pty bash
           module purge
           module load cuffdiff samtools
 
-          # Step 2.) Build METRO reference files
-          metro build --ref-fa GRCm39.primary_assembly.genome.fa \\
+          # Step 2.) Build {0} reference files
+          {0} build --ref-fa GRCm39.primary_assembly.genome.fa \\
                       --ref-gtf gencode.vM26.annotation.gtf \\
                       --outputDir /scratch/$USER/METRO/refs/
 
-        version:
-          {}
-        """.format(__version__))
+        {2}{3}Version:{4}
+          {1}
+        """.format(_name, __version__, c.bold, c.url, c.end))
 
     # Supressing help message of required args to overcome no sub-parser named groups
-    subparser_build = subparsers.add_parser('build',
-                                            help = 'Builds the reference files for the METRO.',
-                                            usage = argparse.SUPPRESS,
-                                            formatter_class=argparse.RawDescriptionHelpFormatter,
-                                            description = required_build_options,
-                                            epilog = build_epilog)
+    subparser_build = subparsers.add_parser(
+        'build',
+        help = 'Builds the reference files for METRO.',
+        usage = argparse.SUPPRESS,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description = required_build_options,
+        epilog = build_epilog,
+        add_help=False
+    )
     # Input Genomic FASTA file
-    subparser_build.add_argument('--ref-fa',
-                                # Check if the file exists and if it is readable
-                                type = lambda file: permissions(parser, file, os.R_OK),
-                                required = True,
-                                help = argparse.SUPPRESS)
+    subparser_build.add_argument(
+        '--ref-fa',
+        # Check if the file exists and if it is readable
+        type = lambda file: permissions(parser, file, os.R_OK),
+        required = True,
+        help = argparse.SUPPRESS
+    )
     # Input Reference GTF file
-    subparser_build.add_argument('--ref-gtf',
-                                # Check if the file exists and if it is readable
-                                type = lambda file: permissions(parser, file, os.R_OK),
-                                required = True,
-                                help = argparse.SUPPRESS)
+    subparser_build.add_argument(
+        '--ref-gtf',
+        # Check if the file exists and if it is readable
+        type = lambda file: permissions(parser, file, os.R_OK),
+        required = True,
+        help = argparse.SUPPRESS
+    )
     # Output Directory (build working directory)
-    subparser_build.add_argument('--outputDir',
-                                type = lambda option: os.path.abspath(os.path.expanduser(option)),
-                                required = True,
-                                help = argparse.SUPPRESS)
+    subparser_build.add_argument(
+        '--outputDir',
+        type = lambda option: os.path.abspath(os.path.expanduser(option)),
+        required = True,
+        help = argparse.SUPPRESS
+    )
+    
+    # Optional Arguments
+    # Add custom help message
+    subparser_build.add_argument(
+        '-h', '--help', 
+        action='help', 
+        help=argparse.SUPPRESS
+    )
 
     # Options for the "input" sub-command
     # Grouped sub-parser arguments are currently not supported by argparse.
@@ -695,113 +762,150 @@ def parsed_arguments():
     # options that are required! Please note: if a required arg is added the
     # description below should be updated (i.e. update usage and add new option)
     required_input_options = textwrap.dedent("""\
-        usage: metro input [-h] --mafFiles MAFFILES
-                              --outputDir OUTPUTDIR 
-                              --outputprefix OUTPUTprefix
-                              [--vafFilter VAFFILTER]
-                              [--passFilter PASSFILTER]
-                              [--impactFilter IMPACTFILTER]
+        {0}
 
-        Prepares input files for the Amino Acid sequence analysis pipeline.The input sub command takes a 
-        VCF-like or MAF-like file and performs the filtering outlined with parameters below, to prepare 
-        a final input to the METRO pipeline. 
+        {2}{3}Usage:{5}
+          $ {1} input [--help] \\
+                    [--impactFilter IMPACTFILTER] \\
+                    [--passFilter PASSFILTER] \\
+                    [--vafFilter VAFFILTER] \\
+                    --mafFiles MAFFILES \\
+                    --outputDir OUTPUTDIR \\
+                    --outputprefix OUTPUTprefix
 
-        required arguments:
-            --mafFiles MAFFILES
-                            Input VCF file(s) in MAF format. Provide a minimum of two files, separated by a comma.
-                            Example: --mafFiles data/test1.maf,data/test2.maf
-                            Required header (in any order): Hugo_Symbol Start_Position End_Position Reference_Allele
-                                                            Tumor_Seq_Allele1 Tumor_Seq_Allele2
+        {2}{3}Description:{5}
+          Prepares input files for the mouse neoantigen prediction pipeline. 
+        The input sub command takes a VCF-like or MAF-like file and filters 
+        it using the parameters outlined below. This is to prepare a final,
+        filtered input file to the {1} run sub command. 
+
+        {2}{3}Required arguments:{5}
+            --mafFiles MAFFILES   
+                                 Input VCF file(s) in MAF format. Provide a minimum 
+                                 of two files, separated by a comma. Each input file 
+                                 must have the follow required columns in the header:
+                                    • Hugo_Symbol 
+                                    • Start_Position 
+                                    • End_Position 
+                                    • Reference_Allele
+                                    • Tumor_Seq_Allele1 
+                                    • Tumor_Seq_Allele2 
+            
             --outputDir OUTPUTDIR 
-                           Path to an output directory. This path is where the pipeline
-                           will create all of its output files. If the provided output 
-                           directory does not exist, it will be created. 
-                           Example: --outputDir /path/to/output/dir
-            --outputprefix OUTPUTprefix
-                            Prefix for sample output.
-                            Example: --outputprefix test
+                                 Path to an output directory. This path is where the 
+                                 pipeline will create all of its output files. If the 
+                                 provided output directory does not exist, then it 
+                                 will be created automatically. 
 
-        optional arguments:
-            --vafFilter VAFFILTER
-                            Minimum value for average VAF, calculated as t_alt_count/t_depth, to be included.
-                            Example: --vafFilter 0.2
-                            Default: 0.2
-            --passFilter PASSFILTER
-                            Minimum number of input files with a filter rating of "PASS", to be included.
-                            Example: --passFilter 2
-                            Default: 2
+            --outputprefix OUTPUTprefix
+                                 Prefix for output file names.
+
+        {2}{3}Optional arguments:{5}
+            -h, --help           Show usage information, help message, and exit.
             --impactFilter IMPACTFILTER
-                            Minimum number of input files with an IMPACT rating of "MODERATE" or "HIGH", to be included
-                            Example: --impactFilter 2
-                            Default: 2
-        """)
+                                 Minimum number of input files with an IMPACT rating 
+                                 of "MODERATE" or "HIGH" to be included. 
+                                 Default: 2
+
+            --passFilter PASSFILTER
+                                 Minimum number of input files with a filter rating 
+                                 of "PASS" to be included. 
+                                 Default: 2
+
+            --vafFilter VAFFILTER
+                                 Minimum value for average VAF calculated as 
+                                 (t_alt_count/t_depth) to be included. 
+                                 Default: 0.2
+        """.format(named_description, _name, c.bold, c.url, c.italic, c.end))
 
     # Display example usage in epilog
     input_epilog = textwrap.dedent("""\
-        example:
-          # Step 1.) Grab an interactive node (do not run on head node)
-          sinteractive --mem=8g --cpus-per-task=4
+        {2}{3}Example:{4}
+          # Step 1.) Grab an interactive node
+          # do not run on head node!
+          srun -N 1 -n 1 --time=1:00:00 --mem=8gb  --cpus-per-task=2 --pty bash
           module purge
           module load python/3.5
 
-          # Step 2.) Run METRO to find mutated protein products
-          ./metro input \\
+          # Step 2.) Run {0} to find mutated protein products
+          ./{0} input \\
+                --impactFilter 2 \\
+                --passFilter 2 \\
+                --vafFilter 0.2 \\
                 --mafFiles /scratch/$USER/METRO/test1.maf,/scratch/$USER/METRO/test2.maf \\
                 --outputDir /scratch/$USER/METRO/ \\
-                --outprefix test \\
-                --vafFilter 0.2 \\
-                --passFilter 2 \\
-                --impactFilter 2
+                --outprefix test 
 
-        version:
-          {}
-        """.format(__version__))
+        {2}{3}Version:{4}
+          {1}
+        """.format(_name, __version__, c.bold, c.url, c.end))
 
     # Supressing help message of required args to overcome no sub-parser named groups
-    subparser_input = subparsers.add_parser('input',
-                                            help = 'Filter input MAF files for METRO variant binding',
-                                            usage = argparse.SUPPRESS,
-                                            formatter_class=argparse.RawDescriptionHelpFormatter,
-                                            description = required_input_options,
-                                            epilog  = input_epilog)
+    subparser_input = subparsers.add_parser(
+        'input',
+        help = 'Filter input MAF files for METRO variant binding.',
+        usage = argparse.SUPPRESS,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description = required_input_options,
+        epilog  = input_epilog,
+        add_help=False
+    )
+
+    # Required arguements
     # Input mutation file
-    subparser_input.add_argument('--mafFiles',
-                                # Check if the file exists and if it is readable
-                                type = lambda file: permissions(parser, file, os.R_OK),
-                                required = True,
-                                nargs = '+',
-                                help = argparse.SUPPRESS)
-
+    subparser_input.add_argument(
+        '--mafFiles',
+        # Check if the file exists and if it is readable
+        type = lambda file: permissions(parser, file, os.R_OK),
+        required = True,
+        nargs = '+',
+        help = argparse.SUPPRESS
+    )
     # Output Directory (analysis working directory)
-    subparser_input.add_argument('--outputDir',
-                                type = lambda option: os.path.abspath(os.path.expanduser(option)),
-                                required = True,
-                                help = argparse.SUPPRESS)
-
+    subparser_input.add_argument(
+        '--outputDir',
+        type = lambda option: os.path.abspath(os.path.expanduser(option)),
+        required = True,
+        help = argparse.SUPPRESS
+    )
     # Output prefix
-    subparser_input.add_argument('--outprefix',
-                                required = True,
-                                help = 'Prefix of output files')
-
+    subparser_input.add_argument(
+        '--outprefix',
+        required = True,
+        help = argparse.SUPPRESS
+    )
+    
+    # Optional arguements
+    # Add custom help message
+    subparser_input.add_argument(
+        '-h', '--help', 
+        action='help', 
+        help=argparse.SUPPRESS
+    )
     # average VAF filter
-    subparser_input.add_argument('--vafFilter',
-                                required = False,
-                                default='.2',
-                                type = float,
-                                help = 'Minimum threshold for average VAF score (t_alt_count/t_depth)')
+    subparser_input.add_argument(
+        '--vafFilter',
+        required = False,
+        default='.2',
+        type = float,
+        help = argparse.SUPPRESS
+    )
     # PASS filter
-    subparser_input.add_argument('--passFilter',
-                                required = False,
-                                default='2',
-                                type = int,
-                                help = 'Minimum threshold for number of files in which PASS filter must be found')
-
+    subparser_input.add_argument(
+        '--passFilter',
+        required = False,
+        default='2',
+        type = int,
+        help = argparse.SUPPRESS
+    )
     # IMPACT (MODERATE, HIGH) filter
-    subparser_input.add_argument('--impactFilter',
-                                required = False,
-                                default='2',
-                                type = int,
-                                help = 'Minimum threshold for number of files in which IMPACT filter (MODERATE or HIGH) must be found')
+    subparser_input.add_argument(
+        '--impactFilter',
+        required = False,
+        default='2',
+        type = int,
+        help = argparse.SUPPRESS
+    )
 
     # Options for the "run" sub-command
     # Grouped sub-parser arguments are currently not supported by argparse.
@@ -810,22 +914,27 @@ def parsed_arguments():
     # options that are required! Please note: if a required arg is added the
     # description below should be updated (i.e. update usage and add new option)
     required_run_options = textwrap.dedent("""\
-        usage: metro run [-h] --input INPUT [INPUT ...]
-                              --transcripts TRANSCRIPTS
-                              --outputDir OUTPUT
-                              [--subset SUBSET]
+        {0}
 
-        Runs the Amino Acid sequence analysis pipeline with reference files generated 
-        from the build sub command to determine the consequence of a mutation on a 
+        {2}{3}Usage:{5}
+          $ {1} run [--help] \\
+                   [--subset SUBSET] \\
+                   --input INPUT [INPUT ...] \\
+                   --transcripts TRANSCRIPTS \\
+                   --outputDir OUTPUT
+
+        {2}{3}Description:{5}
+          Runs the mouse neoantigen prediction pipeline with reference files built 
+        with the build sub command to determine the consequence of a mutation on a 
         protein product. The run sub command takes a VCF-like or MAF-like file and 
         a FASTA file containing transcript sequences. 
 
-        required arguments:
+        {2}{3}Required arguments:{5}
           --input INPUT [INPUT ...]
                            Input VCF-like or MAF-like files to process. One or more 
                            files can be provided. A mutated amino acid sequence will 
                            be generated for each variant in the supplied input file.
-                           Example: --input data/*.xlsx
+
           --transcripts TRANSCRIPTS
                            Transcriptomic FASTA file. This reference file contains 
                            the sequence of each transcript in the reference genome. 
@@ -833,72 +942,99 @@ def parsed_arguments():
                            When creating this reference file, it is very important to 
                            use the same genomic FASTA and annotation file to call and 
                            annotate variants.
-                           Example: --transcripts transcripts.fa 
+
           --outputDir OUTPUT
                            Path to an output directory. This path is where the pipeline
                            will create all of its output files. If the provided output 
-                           directory does not exist, it will be created. 
-                           Example: --outputDir /scratch/$USER/METRO/
-        """)
+                           directory does not exist, it will be created.
+        
+        {2}{3}Optional arguments:{5}
+          -h, --help       Show usage information, help message, and exit.
+          --subset SUBSET  Subset resulting mutated amino acid sequence. If defined,
+                           this option will obtain the mutated amino acid sequence
+                           (AAS) +/- N amino acids of the mutation start site. By
+                           default, the first 30 upstream and downstream amino acids
+                           from the mutation site are recorded for non-frame shift
+                           mutations. Amino acids downstream of a frame shit mutation
+                           will be reported until the end of the amino acids sequence
+                           for the variants transcript or until the first reported
+                           terminating stop codon is found. 
+                           Default: 30
+        """.format(named_description, _name, c.bold, c.url, c.italic, c.end))
 
     # Display example usage in epilog
     run_epilog = textwrap.dedent("""\
-        example:
-          # Step 1.) Grab an interactive node (do not run on head node)
-          sinteractive --mem=8g --cpus-per-task=4
+        {2}{3}Example:{4}
+          # Step 1.) Grab an interactive node
+          # do not run on head node!
+          srun -N 1 -n 1 --time=1:00:00 --mem=8gb  --cpus-per-task=2 --pty bash
           module purge
           module load python/3.5
 
           # Step 2.) Run METRO to find mutated protein products
-          ./metro run --input  /data/*.xlsx \\
-                         --outputDir /scratch/$USER/METRO \\
-                         --transcripts transcripts.fa \\
-                         --subset 30
+          ./metro run --subset 30 \\
+                    --input  /data/*.xlsx \\
+                    --outputDir /scratch/$USER/METRO \\
+                    --transcripts transcripts.fa 
 
-        version:
-          {}
-        """.format(__version__))
+        {2}{3}Version:{4}
+          {1}
+        """.format(_name, __version__, c.bold, c.url, c.end))
 
     # Supressing help message of required args to overcome no sub-parser named groups
-    subparser_run = subparsers.add_parser('run',
-                                            help = 'Run METRO against called variants.',
-                                            usage = argparse.SUPPRESS,
-                                            formatter_class=argparse.RawDescriptionHelpFormatter,
-                                            description = required_run_options,
-                                            epilog  = run_epilog)
+    # Required arguments
+    subparser_run = subparsers.add_parser(
+        'run',
+        help = 'Run METRO against called variants.',
+        usage = argparse.SUPPRESS,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description = required_run_options,
+        epilog  = run_epilog,
+        add_help = False
+    )
+
+    # Required arguments
     # Input FastQ files
-    subparser_run.add_argument('--input',
-                                # Check if the file exists and if it is readable
-                                type = lambda file: permissions(parser, file, os.R_OK),
-                                required = True,
-                                nargs = '+',
-                                help = argparse.SUPPRESS)
+    subparser_run.add_argument(
+        '--input',
+        # Check if the file exists and if it is readable
+        type = lambda file: permissions(parser, file, os.R_OK),
+        required = True,
+        nargs = '+',
+        help = argparse.SUPPRESS
+    )
     # Output Directory (analysis working directory)
-    subparser_run.add_argument('--outputDir',
-                                type = lambda option: os.path.abspath(os.path.expanduser(option)),
-                                required = True,
-                                help = argparse.SUPPRESS)
+    subparser_run.add_argument(
+        '--outputDir',
+        type = lambda option: os.path.abspath(os.path.expanduser(option)),
+        required = True,
+        help = argparse.SUPPRESS
+    )
     # Reference Transcriptome
-    subparser_run.add_argument('--transcripts',
-                                # Check if the file exists and if it is readable
-                                type = lambda file: permissions(parser, file, os.R_OK),
-                                required = True,
-                                help = argparse.SUPPRESS)
-    # Obtain the mutated amino acid sequence(AAS) +- N amino acids of the mutated amino acid.
-    subparser_run.add_argument('--subset',
-                                type = int,
-                                required = False,
-                                default = 30,
-                                help = 'Subset resulting mutated amino acid sequence. \
-                                        If defined, this option will obtain the mutated \
-                                        amino acid sequence (AAS) +/- N amino acids of the mutation \
-                                        start site. By default, the first 30 upstream and downstream \
-                                        amino acids from the mutation site are recorded for non-frame \
-                                        shift mutations. Amino acids downstream of a frame shit mutation \
-                                        will be reported until the end of the amino acids sequence for \
-                                        the variants transcript or until the first reported terminating \
-                                        stop codon is found. \
-                                        Example: --subset 30')
+    subparser_run.add_argument(
+        '--transcripts',
+        # Check if the file exists and if it is readable
+        type = lambda file: permissions(parser, file, os.R_OK),
+        required = True,
+        help = argparse.SUPPRESS
+    )
+
+    # Optional arguments
+    # Add custom help message
+    subparser_run.add_argument(
+        '-h', '--help', 
+        action='help', 
+        help=argparse.SUPPRESS
+    )
+    # Obtain the mutated amino acid sequence(AAS) 
+    # +- N amino acids of the mutated amino acid.
+    subparser_run.add_argument(
+        '--subset',
+        type = int,
+        required = False,
+        default = 30,
+        help = argparse.SUPPRESS
+    )
     
     # Options for the "predict" sub-command
     # Grouped sub-parser arguments are currently not supported by argparse.
@@ -907,151 +1043,210 @@ def parsed_arguments():
     # options that are required! Please note: if a required arg is added the
     # description below should be updated (i.e. update usage and add new option)
     required_predict_options = textwrap.dedent("""\
-        usage: metro predict [-h] --mutationFile MUTATIONFILE
-                              --alleleList ALLELELIST
-                              --outputDir OUTPUTDIR
-                              --outprefix OUTPREFIX
-                              [--kmerLength KMERLENGTH]
-                              [--peptideLength PEPTIDELENGTH]
-                              [--highbind HIGHBIND]
-                              [--lowbind LOWBIND]
+        {0}
 
-        Runs the Amino Acid sequence analysis pipeline with reference files generated 
-        from the build sub command to determine the consequence of a mutation on a 
-        protein product. The run sub command takes a VCF-like or MAF-like file and 
-        a FASTA file containing transcript sequences. 
+        {2}{3}Usage:{5}
+          $ {1} predict [--help] \\
+                      [--kmerLength KMERLENGTH] [--peptideLength PEPTIDELENGTH] \\
+                      [--highbind HIGHBIND] [--lowbind LOWBIND] \\
+                      [--threads THREADS] \\
+                      --mutationFile MUTATIONFILE \\
+                      --alleleList ALLELELIST \\
+                      --outputDir OUTPUTDIR \\
+                      --outprefix OUTPREFIX
 
-        required arguments:
+        {2}{3}Description:{5}
+          Run the mouse neoantigen prediction pipeline with output files from 
+        the run sub command to predict the binding affinity of peptides to MHC
+        class molecules. The predict sub command takes a metro TSV from the run
+        sub command and a list alleles to evaluate as input. Binding prediction 
+        is completed with NetMHCpan. Please do not forget to cite those authors.
+
+        {2}{3}Citation:{5}
+         {4}@NetMHCpan{5}
+          • Gapped sequence alignment using artificial neural networks: application 
+            to the MHC class I system. Andreatta M, Nielsen M. Bioinformatics (2016) 
+            Feb 15; 32(4):511-7
+
+        {2}{3}Required arguments:{5}
             --mutationFile MUTATIONFILE
-                            Input file in tsv format. This can be the output of the METRO run command
-                            or a user generated file.
-                            Example: --mutationFile data/test_Variant.metro.tsv
-                            Required header (in any order):    Variant_Classification	Hugo_Symbol	
-                                Transcript_ID   WT_Subset_AA_Sequence	Mutated_Subset_AA_Sequence
+                            Input file in tsv format. This can be the output of the 
+                            {1} run command or a user generated file. Each input 
+                            file must have the follow required columns in the header:
+                                • Variant_Classification
+                                • Hugo_Symbol	
+                                • Transcript_ID
+                                • WT_Subset_AA_Sequence	
+                                • Mutated_Subset_AA_Sequence
             --alleleList ALLELELIST
-                            Allele name(s). If list, each allele is separated by commas
-                            and without spaces (max 20 per submission). For full list of alleles possible:
+                            Allele name(s). More than one allele can be provided at a
+                            time. Multiple alleles should be seperated be seperated by 
+                            commas (without spaces, max 20 per submission). For a full 
+                            list of alleles possible, please visit this NetMHCpan page:
                             https://services.healthtech.dtu.dk/services/NetMHCpan-4.1/MHC_allele_names.txt
-                            Example: --alleleList H-2-Ld,H-2-Dd,H-2-Kb
+            
             --outputDir OUTPUTDIR 
-                           Path to an output directory. This path is where the pipeline
-                           will create all of its output files. If the provided output 
-                           directory does not exist, it will be created. 
-                           Example: --outputDir /path/to/output/dir
+                            Path to an output directory. This path is where the pipeline
+                            will create all of its output files. If the provided output 
+                            directory does not exist, it will be created. 
+            
             --outputprefix OUTPUTprefix
-                            Prefix all sample outputs will be named. 
-                            Example: --outputprefix test
+                            Prefix for outputs file names. 
 
-        optional arguments:
+        {2}{3}Optional arguments:{5}
+            -h, --help      Show usage information, help message, and exit.
+
+            --threads THREADS
+                            Number of threads to use for multiprocessing. Providng more 
+                            threads will signficantly reduce the overall run time. Each 
+                            allele will be evaluated in parallel. The optimal number of
+                            cores can be found by min(len(allelelist)-1, CPUsAvailable-1).
+                            Default: 4
+
             --kmerLength KMERLENGTH
-                            Length of Mutated_Subset_AA_Sequence to submit in prediction analysis.
-                            Will set mutation to be center of length for non-frameshift mutations,
-                            so value must be an odd number.
-                            Example: --kmerLength 21
+                            Length of Mutated_Subset_AA_Sequence to submit in prediction 
+                            analysis. Will set mutation to be center of length for non-
+                            frameshift mutations, so value must be an odd number.
                             Default: 21
+
             --peptideLength PEPTIDELENGTH
-                           Single value, or list, of length to shorten peptide sequence for prediction analysis.
-                           If list, each length is separated by a comma and without spaces.
-                           Example: --peptideLength 8,9,10,11
-                           Default: 8,9,10,11
+                            Single value, or list, of length to shorten peptide sequence
+                            for prediction analysis. If list, each length is separated by 
+                            a comma and without spaces.
+                            Default: 8,9,10,11
+
             --highbind HIGHBIND
-                            Threshold to define binding affinity as "STRONG" for netHMC output. Must be an integer
-                            that is lower than --lowbind.
-                            Example: --highbind 0.5
+                            Threshold to define binding affinity as "STRONG" for netHMC 
+                            output. Must be an integer that is lower than --lowbind.
                             Default: 0.5
+
             --lowbind LOWBIND
-                            Threshold to define binding affinity as "WEAK" for netHMC output. Must be an integer
-                            that is higher than --highbind.
-                            Example: --lowbind 2
+                            Threshold to define binding affinity as "WEAK" for netHMC 
+                            output. Must be an integer that is higher than --highbind.
                             Default: 2
-        """)
+        """.format(named_description, _name, c.bold, c.url, c.italic, c.end))
 
     # Display example usage in epilog
     predict_epilog = textwrap.dedent("""\
-        example:
-          # Step 1.) Grab an interactive node (do not run on head node)
-          sinteractive --mem=8g --cpus-per-task=4
+        {2}{3}Example:{4}
+          # Step 1.) Grab an interactive node 
+          # do not run on head node!
+          srun -N 1 -n 1 --time=1:00:00 --mem=8gb  --cpus-per-task=18 --pty bash
           module purge
           module load python/3.5
 
-          # Step 2.) Run METRO to find mutated protein products
+          # Step 2.) Run {0} to find mutated protein products
+          # Using number of available threads - 2
           ./metro predict \\
-                --mutationFile /scratch/$USER/METRO/test_Variant.asap.tsv \\
+                --threads 16 \\
+                --mutationFile /scratch/$USER/METRO/test_Variant.metro.tsv \\
                 --allelList H-2-Ld,H-2-Dd,H-2-Kb \\
                 --peptideLength 8,9,10,11 \\
                 --kmerLength 21 \\
+                --highbind 0.5 \\
+                --lowbind 2 \\
                 --outputDir /scratch/$USER/METRO/ \\
                 --outprefix test
-        version:
-          {}
-        """.format(__version__))
+
+        {2}{3}Version:{4}
+          {1}
+        """.format(_name, __version__, c.bold, c.url, c.end))
 
     
     # Supressing help message of required args to overcome no sub-parser named groups
-    subparser_predict = subparsers.add_parser('predict',
-                                            help = 'Predict METRO variant binding using NETMHC.',
-                                            usage = argparse.SUPPRESS,
-                                            formatter_class=argparse.RawDescriptionHelpFormatter,
-                                            description = required_predict_options,
-                                            epilog  = predict_epilog)
+    subparser_predict = subparsers.add_parser(
+        'predict',
+        help = 'Predict METRO variant binding using NETMHC.',
+        usage = argparse.SUPPRESS,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description = required_predict_options,
+        epilog  = predict_epilog,
+        add_help = False
+    )
+
+    # Required arguments
     # Input mutation file
-    subparser_predict.add_argument('--mutationFile',
-                                # Check if the file exists and if it is readable
-                                type = lambda file: permissions(parser, file, os.R_OK),
-                                required = True,
-                                nargs = '+',
-                                help = argparse.SUPPRESS)
-
+    subparser_predict.add_argument(
+        '--mutationFile',
+        # Check if the file exists and if it is readable
+        type = lambda file: permissions(parser, file, os.R_OK),
+        required = True,
+        nargs = '+',
+        help = argparse.SUPPRESS
+    )
     # HLA allele name
-    subparser_predict.add_argument('--alleleList',
-                                required = True,
-                                help = 'Allele name(s). If submitting more than one allele, sep by comma without spaces')
-
-                                
+    subparser_predict.add_argument(
+        '--alleleList',
+        required = True,
+        help = argparse.SUPPRESS
+    )                           
     # Output Directory (analysis working directory)
-    subparser_predict.add_argument('--outputDir',
-                                type = lambda option: os.path.abspath(os.path.expanduser(option)),
-                                required = True,
-                                help = argparse.SUPPRESS)
-
+    subparser_predict.add_argument(
+        '--outputDir',
+        type = lambda option: os.path.abspath(os.path.expanduser(option)),
+        required = True,
+        help = argparse.SUPPRESS
+    )
     # Output prefix
-    subparser_predict.add_argument('--outprefix',
-                                required = True,
-                                help = 'Prefix of output files')
+    subparser_predict.add_argument(
+        '--outprefix',
+        required = True,
+        help = argparse.SUPPRESS
+    )
 
+    # Optional arguments
+    # Custom help message
+    subparser_predict.add_argument(
+        '-h', '--help', 
+        action='help', 
+        help=argparse.SUPPRESS
+    )
+    # Threads for multiprocessing
+    subparser_predict.add_argument(
+        '--threads',
+        required = False,
+        default=4,
+        type = int,
+        help = argparse.SUPPRESS
+    )
     # kmerLength
-    subparser_predict.add_argument('--kmerLength',
-                                required = False,
-                                default='21',
-                                type = int,
-                                help = 'Length of kmer to run prediction analysis')
-
+    subparser_predict.add_argument(
+        '--kmerLength',
+        required = False,
+        default='21',
+        type = int,
+        help = argparse.SUPPRESS
+    )
     # Peptide length
-    subparser_predict.add_argument('--peptideLength',
-                                required = False,
-                                default='8,9,10,11',
-                                help = 'Peptide length (multiple lengths separated by comma e.g. 8,9,10)')
-
+    subparser_predict.add_argument(
+        '--peptideLength',
+        required = False,
+        default='8,9,10,11',
+        help = argparse.SUPPRESS
+    )
     # High Binding Threshold
-    subparser_predict.add_argument('--highbind',
-                                required = False,
-                                default='.5',
-                                type = float,
-                                help = 'Threshold for high binding peptides (EL-Rank)')
-
+    subparser_predict.add_argument(
+        '--highbind',
+        required = False,
+        default='.5',
+        type = float,
+        help = argparse.SUPPRESS
+    )
     # Low Binding Threshold
-    subparser_predict.add_argument('--lowbind',
-                                required = False,
-                                default='2',
-                                type = int,
-                                help = 'Threshold for low binding peptides (EL-Rank)')
-                                
-
+    subparser_predict.add_argument(
+        '--lowbind',
+        required = False,
+        default='2',
+        type = int,
+        help = argparse.SUPPRESS
+    )
+    
     # Sanity check for user command line arguments 
     if len(sys.argv) < 2:
-        parser.error("""\n\t └── Fatal: failed to provide a valid sub command to metro!
-             Please run 'metro  -h' to view more information about metro's usage.""".format(
-                sys.argv[0])
+        parser.error("""\n\t └── Fatal: failed to provide a valid sub command to {0}!
+             Please run '{0} -h' to view more information about {0}'s usage.""".format(
+                _name
+            )
         )
 
     # Define handlers for each sub-parser
@@ -1066,9 +1261,6 @@ def parsed_arguments():
 
 
 def main():
-
-    # Display version information
-    print('METRO ({})'.format(__version__))
 
     # Collect args for sub-command
     args = parsed_arguments()

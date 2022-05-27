@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
     # Number of concurrent tasks
     # or remote workers.
-    try: threads = len(alleleList)
+    try: threads = int(sys.argv[5])
     except ValueError: threads = 4
 
     # Initialize a ray cluster

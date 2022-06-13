@@ -1,0 +1,98 @@
+# Project Information
+site_name: METRO
+site_author: Vishal Koparde, Ph.D.
+site_description: >-
+  Mouse nEoanTigen pRedictOr pipeline 
+
+# Repository
+repo_name: CCBR/METRO
+repo_url: https://github.com/CCBR/METRO
+edit_uri: https://github.com/CCBR/METRO/edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2022 CCBR
+
+# Configuration
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.top
+    - navigation.indexes
+    - toc.integrate 
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - scheme: slate
+      primary: red
+      accent: red
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+  logo: assets/images/doc-book.svg
+  favicon: assets/images/favicon.png
+
+# Plugins
+plugins:
+  - search
+  - git-revision-date
+  - minify:
+      minify_html: true
+
+
+# Customization
+extra:
+  social:
+    - icon: fontawesome/solid/users
+      link: http://bioinformatics.cancer.gov
+    - icon: fontawesome/brands/github
+      link: https://github.com/CCBR
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/orgs/nciccbr/repositories
+  version:
+    provider: mike
+
+
+# Extensions
+markdown_extensions:
+  - markdown.extensions.admonition
+  - markdown.extensions.attr_list
+  - markdown.extensions.def_list
+  - markdown.extensions.footnotes
+  - markdown.extensions.meta
+  - markdown.extensions.toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: squidfunk
+      repo: mkdocs-material
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Page Tree
+nav:
+  - Background : index.md

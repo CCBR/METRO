@@ -28,4 +28,4 @@ module load cufflinks samtools python/3.5
 
 ### 3. Usage
 
-For usage, and example code with test data, please visit the [METRO docs](https://ccbr.github.io/METRO/METRO/predict/) page.
+For usage, and example code with test data, please visit the [METRO docs](https://ccbr.github.io/METRO/) page.

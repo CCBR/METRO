@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Kuhn"
+  given-names: "Skyler"
+- family-names: "Sevilla"
+  given-names: "Samantha"
+  orcid: "https://orcid.org/0000-0002-8734-9875"
+- family-names: "Koparde"
+  given-names: "Vishal"
+- family-names: "Terabe"
+  given-names: "Masaki"
+- family-names: "Hana"
+  given-names: "Taijun"
+title: "Mouse nEoanTigen pRedictOr pipeline (METRO)"
+version: 1.3
+doi: 10.5281/zenodo.6643611
+date-released: 2022-06-14
+url: "https://github.com/CCBR/METRO"

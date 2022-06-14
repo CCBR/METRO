@@ -8,8 +8,8 @@ USAGE:
 	$ metro <build|run|input|predict> [OPTIONS]
 Example:
     $ metro build -h
-    $ metro run -h
-    $ metro input -h
+    $ metro prepare -h
+    $ metro find -h
     $ metro predict -h
 """
 
@@ -117,7 +117,7 @@ def build(sub_args):
     exitcode = bash(process)
 
 
-def input(sub_args):
+def prepare(sub_args):
     """Creates input files for the metro from MAF files.
     Uses user-inputs to determine filtering thresholds.
     @param sub_args <parser.parse_args() object>:
@@ -126,7 +126,7 @@ def input(sub_args):
     # Check that col names exist, if they don't exit and error
     def check(col,df_in):
         if col not in df_in:
-            fatal("""\n\tThe following column is required in input '{}'.""".format(col))
+            fatal("""\n\tThe following column is required in prepare '{}'.""".format(col))
     
     # Read in each input file and check for column 
     # header and create variant id (VIDA), calculate 
@@ -212,9 +212,8 @@ def input(sub_args):
     df_out.to_csv(assap_input_file, index=False)
 
 
-def run(sub_args):
-    """Runs the Amino Acid sequence analysis pipeline to determine 
-    the consequence of a mutation on a protein product. Obtains the 
+def find(sub_args):
+    """Determines the consequence of a mutation on a protein product. Obtains the 
     mutated amino acid sequence for a given variant.
     @param sub_args <parser.parse_args() object>:
         Parsed arguments for run sub-command
@@ -761,7 +760,7 @@ def parsed_arguments():
     # Here is a work around to create more useful help message for named
     # options that are required! Please note: if a required arg is added the
     # description below should be updated (i.e. update usage and add new option)
-    required_input_options = textwrap.dedent("""\
+    required_prepare_options = textwrap.dedent("""\
         {0}
 
         {2}{3}Usage:{5}
@@ -819,7 +818,7 @@ def parsed_arguments():
         """.format(named_description, _name, c.bold, c.url, c.italic, c.end))
 
     # Display example usage in epilog
-    input_epilog = textwrap.dedent("""\
+    prepare_epilog = textwrap.dedent("""\
         {2}{3}Example:{4}
           # Step 1.) Grab an interactive node
           # do not run on head node!
@@ -841,19 +840,19 @@ def parsed_arguments():
         """.format(_name, __version__, c.bold, c.url, c.end))
 
     # Supressing help message of required args to overcome no sub-parser named groups
-    subparser_input = subparsers.add_parser(
+    subparser_prepare = subparsers.add_parser(
         'input',
         help = 'Filter input MAF files for METRO variant binding.',
         usage = argparse.SUPPRESS,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description = required_input_options,
-        epilog  = input_epilog,
+        description = required_prepare_options,
+        epilog  = prepare_epilog,
         add_help=False
     )
 
     # Required arguements
     # Input mutation file
-    subparser_input.add_argument(
+    subparser_prepare.add_argument(
         '--mafFiles',
         # Check if the file exists and if it is readable
         type = lambda file: permissions(parser, file, os.R_OK),
@@ -862,14 +861,14 @@ def parsed_arguments():
         help = argparse.SUPPRESS
     )
     # Output Directory (analysis working directory)
-    subparser_input.add_argument(
+    subparser_prepare.add_argument(
         '--outputDir',
         type = lambda option: os.path.abspath(os.path.expanduser(option)),
         required = True,
         help = argparse.SUPPRESS
     )
     # Output prefix
-    subparser_input.add_argument(
+    subparser_prepare.add_argument(
         '--outprefix',
         required = True,
         help = argparse.SUPPRESS
@@ -877,13 +876,13 @@ def parsed_arguments():
     
     # Optional arguements
     # Add custom help message
-    subparser_input.add_argument(
+    subparser_prepare.add_argument(
         '-h', '--help', 
         action='help', 
         help=argparse.SUPPRESS
     )
     # average VAF filter
-    subparser_input.add_argument(
+    subparser_prepare.add_argument(
         '--vafFilter',
         required = False,
         default='.2',
@@ -891,7 +890,7 @@ def parsed_arguments():
         help = argparse.SUPPRESS
     )
     # PASS filter
-    subparser_input.add_argument(
+    subparser_prepare.add_argument(
         '--passFilter',
         required = False,
         default='2',
@@ -899,7 +898,7 @@ def parsed_arguments():
         help = argparse.SUPPRESS
     )
     # IMPACT (MODERATE, HIGH) filter
-    subparser_input.add_argument(
+    subparser_prepare.add_argument(
         '--impactFilter',
         required = False,
         default='2',
@@ -913,7 +912,7 @@ def parsed_arguments():
     # Here is a work around to create more useful help message for named
     # options that are required! Please note: if a required arg is added the
     # description below should be updated (i.e. update usage and add new option)
-    required_run_options = textwrap.dedent("""\
+    required_find_options = textwrap.dedent("""\
         {0}
 
         {2}{3}Usage:{5}
@@ -963,7 +962,7 @@ def parsed_arguments():
         """.format(named_description, _name, c.bold, c.url, c.italic, c.end))
 
     # Display example usage in epilog
-    run_epilog = textwrap.dedent("""\
+    find_epilog = textwrap.dedent("""\
         {2}{3}Example:{4}
           # Step 1.) Grab an interactive node
           # do not run on head node!
@@ -983,19 +982,19 @@ def parsed_arguments():
 
     # Supressing help message of required args to overcome no sub-parser named groups
     # Required arguments
-    subparser_run = subparsers.add_parser(
+    subparser_find = subparsers.add_parser(
         'run',
         help = 'Run METRO against called variants.',
         usage = argparse.SUPPRESS,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description = required_run_options,
-        epilog  = run_epilog,
+        description = required_find_options,
+        epilog  = find_epilog,
         add_help = False
     )
 
     # Required arguments
     # Input FastQ files
-    subparser_run.add_argument(
+    subparser_find.add_argument(
         '--input',
         # Check if the file exists and if it is readable
         type = lambda file: permissions(parser, file, os.R_OK),
@@ -1004,14 +1003,14 @@ def parsed_arguments():
         help = argparse.SUPPRESS
     )
     # Output Directory (analysis working directory)
-    subparser_run.add_argument(
+    subparser_find.add_argument(
         '--outputDir',
         type = lambda option: os.path.abspath(os.path.expanduser(option)),
         required = True,
         help = argparse.SUPPRESS
     )
     # Reference Transcriptome
-    subparser_run.add_argument(
+    subparser_find.add_argument(
         '--transcripts',
         # Check if the file exists and if it is readable
         type = lambda file: permissions(parser, file, os.R_OK),
@@ -1021,14 +1020,14 @@ def parsed_arguments():
 
     # Optional arguments
     # Add custom help message
-    subparser_run.add_argument(
+    subparser_find.add_argument(
         '-h', '--help', 
         action='help', 
         help=argparse.SUPPRESS
     )
     # Obtain the mutated amino acid sequence(AAS) 
     # +- N amino acids of the mutated amino acid.
-    subparser_run.add_argument(
+    subparser_find.add_argument(
         '--subset',
         type = int,
         required = False,
@@ -1251,8 +1250,8 @@ def parsed_arguments():
 
     # Define handlers for each sub-parser
     subparser_build.set_defaults(func = build)
-    subparser_input.set_defaults(func = input)
-    subparser_run.set_defaults(func = run)
+    subparser_prepare.set_defaults(func = input)
+    subparser_find.set_defaults(func = run)
     subparser_predict.set_defaults(func = predict)
 
     # Parse command-line args

@@ -33,8 +33,8 @@ theme:
       toggle:
         icon: material/toggle-switch
         name: Switch to light mode
-  logo: assets/images/doc-book.svg
-  favicon: assets/images/favicon.png
+  logo: img/METRO_logo.png
+  favicon: img/fred_logo.png
 
 # Plugins
 plugins:
@@ -61,6 +61,7 @@ extra:
 markdown_extensions:
   - markdown.extensions.admonition
   - markdown.extensions.attr_list
+  - markdown.extensions.md_in_html
   - markdown.extensions.def_list
   - markdown.extensions.footnotes
   - markdown.extensions.meta
@@ -96,3 +97,12 @@ markdown_extensions:
 # Page Tree
 nav:
   - Background : index.md
+  - Usage: 
+    - 1. Getting Started : METRO/getting-started.md
+    - 2. Build: METRO/build.md
+    - 3. Prepare: METRO/prepare.md
+    - 4. Find: METRO/find.md
+    - 5. Predict: METRO/predict.md
+  - FAQ:
+    - Troubleshooting: METRO/troubleshooting.md
+    - Citation: METRO/citation.md

@@ -1,0 +1,4 @@
+argparse
+pandas
+xlrd
+numpy

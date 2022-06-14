@@ -1,5 +1,7 @@
 <div align="center">
   <img src="data/METRO_logo.png" width="65%" height="65%">
+  
+  [![DOI](https://zenodo.org/badge/387896760.svg)](https://zenodo.org/badge/latestdoi/387896760)
 
   [![GitHub releases](https://img.shields.io/github/release/CCBR/METRO)](https://github.com/CCBR/METRO/releases)  [![GitHub issues](https://img.shields.io/github/issues/CCBR/METRO)](https://github.com/CCBR/METRO/issues) [![GitHub license](https://img.shields.io/github/license/CCBR/METRO)](https://github.com/CCBR/METRO/blob/master/LICENSE)  
 

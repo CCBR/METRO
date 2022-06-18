@@ -29,3 +29,14 @@ module load cufflinks samtools python/3.5
 ### 3. Usage
 
 For usage, and example code with test data, please visit the [METRO docs](https://ccbr.github.io/METRO/) page.
+
+### 4. Contributions
+Contributing authors to METRO are as follows:
+- [Skyler Kuhn](https://github.com/skchronicles)
+- [Samantha Sevilla](https://github.com/slsevilla)
+- [Emily Steffke](https://github.com/EmilySteffke)
+- [Vishal Koparde](https://github.com/kopardev)
+- [Masaki Terabe](https://github.com/terabem)
+- Taijun Hana
+
+SK and SS contributed to the geneating the source code; SK, SS, and VK contributed to the code; TH, ES, and MT contributed to the main concepts and analysis.

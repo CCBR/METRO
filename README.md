@@ -37,6 +37,6 @@ Contributing authors to METRO are as follows:
 - [Emily Steffke](https://github.com/EmilySteffke)
 - [Vishal Koparde](https://github.com/kopardev)
 - [Masaki Terabe](https://github.com/terabem)
-- Taijun Hana
+- [Taijun Hana](https://github.com/TaijunHana)
 
 SK and SS contributed to the geneating the source code; SK, SS, and VK contributed to the code; TH, ES, and MT contributed to the main concepts and analysis.

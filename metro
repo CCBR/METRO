@@ -1250,8 +1250,8 @@ def parsed_arguments():
 
     # Define handlers for each sub-parser
     subparser_build.set_defaults(func = build)
-    subparser_prepare.set_defaults(func = input)
-    subparser_find.set_defaults(func = run)
+    subparser_prepare.set_defaults(func = prepare)
+    subparser_find.set_defaults(func = find)
     subparser_predict.set_defaults(func = predict)
 
     # Parse command-line args

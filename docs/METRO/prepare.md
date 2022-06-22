@@ -90,11 +90,12 @@ srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty
 module purge
 module load python/3.5
 
- # Step 1.) Run METRO to find mutated protein products
- ./metro prepare --mafFiles  /data/*.maf \
-             --outputdir /scratch/$USER/METRO \
-             --outputprefix test \
-             --vafFilter 0.2 \
-             --passFilter 2 \
-             --impactFilter 2
+ # Step 1.) Run METRO subcommand PREPARE to prepare files for processing
+ ./metro prepare \
+            --mafFiles /data/*.maf \
+            --outputDir /scratch/$USER/METRO \
+            --outprefix test \
+            --vafFilter 0.2 \
+            --passFilter 2 \
+            --impactFilter 2
 ```

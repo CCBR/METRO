@@ -64,7 +64,8 @@ module purge
 module load cufflinks samtools
 
 # Step 1.) Build METRO reference files
-metro build --ref-fa GRCm39.primary_assembly.genome.fa \
+metro build \
+            --ref-fa GRCm39.primary_assembly.genome.fa \
             --ref-gtf gencode.vM26.annotation.gtf \
             --output /scratch/$USER/METRO/refs/
 ```

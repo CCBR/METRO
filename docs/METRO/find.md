@@ -71,9 +71,10 @@ srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty
 module purge
 module load python/4.5
 
- # Step 1.) Find METRO to find mutated protein products
- ./metro find --input  /data/*.xlsx \
-             --output /scratch/$USER/METRO \
-             --transcripts /scratch/$USER/METRO/refs/transcripts.fa \
-             --subset 30
+ # Step 1.) Find METRO subcommand FIND to find mutated protein products
+ ./metro find \
+            --input /data/test_VAF20_Variant.csv \
+            --output /scratch/$USER/METRO \
+            --transcripts /scratch/$USER/METRO/refs/transcripts.fa \
+            --subset 30
 ```

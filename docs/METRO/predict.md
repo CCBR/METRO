@@ -110,12 +110,12 @@ srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty
 module purge
 module load python/3.5
 
- # Step 1.) Run METRO predict to find the binding of peptides to any MHC molecule
+ # Step 1.) Run METRO subcommand PREDICT to predict the binding of peptides to any MHC molecule
  ./metro predict \
-                --mutationFile /scratch/$USER/METRO/test_Variant.asap.tsv \
+                --mutationFile /data/test_VAF20_Variant.metro.tsv \
                 --allelList H-2-Ld,H-2-Dd,H-2-Kb \
                 --peptideLength 8,9,10,11 \
                 --kmerLength 21 \
-                --outputdir /scratch/$USER/METRO/ \
+                --outputDir /scratch/$USER/METRO/ \
                 --outprefix test
 ```

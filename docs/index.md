@@ -1,6 +1,6 @@
-# <center> [M]ouse N[e]oan[t]igen P[r]edict[o]r [METRO] </center>
+# <center> [M]ouse N[e]oan[t]igen P[r]edict[o]r:  [METRO] </center>
 
-## <center> METRO is a competent prediction tool for murine cancer neoantigens </center> <br>
+## <center> METRO is a competent prediction tool for murine cancer neoantigens </center>
 
 Cancer cells contain multiple genomic mutations. Some of the mutations are nonsynonymous and translated into changes in amino acid (AA) sequences of proteins. Fragments of the mutated proteins (peptides) presented by major histocompatibility complex (MHC) molecules to T cells are called neoantigens. Neoantigens do not exist in normal cells and are unique to cancer cells; therefore, they are recognized as foreign or non-self by T cells. Hence, they are potentially excellent targets for cancer immunotherapy. Syngeneic mouse tumor models are widely used to study tumor immunology and can be used to study neoantigen-targeted immunotherapies. The information on neoantigens needs to be obtained through the comprehensive mutation search of the cancer cell genome using a next-generation sequencer (NGS).
 

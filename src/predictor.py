@@ -51,7 +51,7 @@ def bash(cmd, interpreter='/bin/bash', strict=True, **kwargs):
 # run netMHCpan on individual allele with RAY parallelizing jobs
 @ray.remote 
 def run_netMHC(alleleid, netMHC_input, peptideLength, netmhc_intermed): 
-    print("RUNNING" + alleleid)
+    print("RUNNING " + alleleid)
     
     # set output intermed file names
     netmhc_raw=str(netmhc_intermed+"raw_"+alleleid+".tsv")

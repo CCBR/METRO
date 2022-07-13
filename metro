@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 
 """METRO: Mouse nEoanTigen pRedictOr
 About:
     This is the main entry for the METRO pipeline.
 USAGE:
-	$ metro <build|run|input|predict> [OPTIONS]
+	$ metro <build|prepare|find|predict> [OPTIONS]
 Example:
     $ metro build -h
     $ metro prepare -h
@@ -40,7 +39,7 @@ import argparse, textwrap
 import numpy as np
 import pandas as pd
 
-__author__ = 'Skyler Kuhn, Samantha Chill'
+__author__ = 'Skyler Kuhn, Samantha Sevilla'
 __version__ = version
 __email__ = 'kuhnsa@nih.gov, samantha.sevilla@nih.gov'
 _name = os.path.basename(sys.argv[0])
@@ -374,9 +373,9 @@ def predict(sub_args):
         Parsed arguments for run sub-command
     """
     # Check whether NETMHC is executable
-    from shutil import which
+    import distutils.spawn
     def check_netMHC(name):
-        if which(name) is None:
+        if distutils.spawn.find_executable(name) is None:
             fatal("netMHCpan must be executable on users $PATH. Review documentation for information on installation.")
     check_netMHC("netMHCpan")
 
@@ -764,13 +763,13 @@ def parsed_arguments():
         {0}
 
         {2}{3}Usage:{5}
-          $ {1} input [--help] \\
+          $ {1} prepare [--help] \\
                     [--impactFilter IMPACTFILTER] \\
                     [--passFilter PASSFILTER] \\
                     [--vafFilter VAFFILTER] \\
                     --mafFiles MAFFILES \\
                     --outputDir OUTPUTDIR \\
-                    --outputprefix OUTPUTprefix
+                    --outprefix OUTprefix
 
         {2}{3}Description:{5}
           Prepares input files for the mouse neoantigen prediction pipeline. 
@@ -796,7 +795,7 @@ def parsed_arguments():
                                  provided output directory does not exist, then it 
                                  will be created automatically. 
 
-            --outputprefix OUTPUTprefix
+            --outprefix OUTprefix
                                  Prefix for output file names.
 
         {2}{3}Optional arguments:{5}
@@ -826,14 +825,14 @@ def parsed_arguments():
           module purge
           module load python/3.5
 
-          # Step 2.) Run {0} to find mutated protein products
-          ./{0} input \\
-                --impactFilter 2 \\
-                --passFilter 2 \\
-                --vafFilter 0.2 \\
-                --mafFiles /scratch/$USER/METRO/test1.maf,/scratch/$USER/METRO/test2.maf \\
+          # Step 2.) Run METRO subcommand {0} to prepare files for processing
+          ./{0} prepare \\
+                --mafFiles /data/*.maf \\
                 --outputDir /scratch/$USER/METRO/ \\
-                --outprefix test 
+                --outprefix test  \\ 
+                --vafFilter 0.2 \\
+                --passFilter 2 \\
+                --impactFilter 2
 
         {2}{3}Version:{4}
           {1}
@@ -841,7 +840,7 @@ def parsed_arguments():
 
     # Supressing help message of required args to overcome no sub-parser named groups
     subparser_prepare = subparsers.add_parser(
-        'input',
+        'prepare',
         help = 'Filter input MAF files for METRO variant binding.',
         usage = argparse.SUPPRESS,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -916,7 +915,7 @@ def parsed_arguments():
         {0}
 
         {2}{3}Usage:{5}
-          $ {1} run [--help] \\
+          $ {1} find [--help] \\
                    [--subset SUBSET] \\
                    --input INPUT [INPUT ...] \\
                    --transcripts TRANSCRIPTS \\
@@ -970,10 +969,11 @@ def parsed_arguments():
           module purge
           module load python/3.5
 
-          # Step 2.) Run METRO to find mutated protein products
-          ./metro run --subset 30 \\
-                    --input  /data/*.xlsx \\
+          # Step 2.) Run METRO find to find mutated protein products
+          ./metro find \\
+                    --input /data/*.xlsx \\
                     --outputDir /scratch/$USER/METRO \\
+                    --subset 30 \\
                     --transcripts transcripts.fa 
 
         {2}{3}Version:{4}
@@ -983,8 +983,8 @@ def parsed_arguments():
     # Supressing help message of required args to overcome no sub-parser named groups
     # Required arguments
     subparser_find = subparsers.add_parser(
-        'run',
-        help = 'Run METRO against called variants.',
+        'find',
+        help = 'Run METRO find against called variants.',
         usage = argparse.SUPPRESS,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description = required_find_options,
@@ -1250,8 +1250,8 @@ def parsed_arguments():
 
     # Define handlers for each sub-parser
     subparser_build.set_defaults(func = build)
-    subparser_prepare.set_defaults(func = input)
-    subparser_find.set_defaults(func = run)
+    subparser_prepare.set_defaults(func = prepare)
+    subparser_find.set_defaults(func = find)
     subparser_predict.set_defaults(func = predict)
 
     # Parse command-line args

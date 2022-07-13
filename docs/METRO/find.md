@@ -65,15 +65,19 @@ Each of the following arguments are optional and do not need to be provided.
 Find metro with the references files generated in the build example.
 
 ```bash 
-# Step 0.) Grab an interactive node
-# Do not run on head node!
-srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty bash
-module purge
-module load python/4.5
+# login and load interactive session, as described in Getting Started
 
- # Step 1.) Find METRO to find mutated protein products
- ./metro find --input  /data/*.xlsx \
-             --output /scratch/$USER/METRO \
-             --transcripts /scratch/$USER/METRO/refs/transcripts.fa \
-             --subset 30
+### Github
+module purge
+module load python/3.5
+
+## Docker
+singularity shell --bind /data/$USER docker://nciccbr/ccbr_metro_v1.4 nciccbr/ccbr_metro_v1.4
+
+## Command 
+ ./metro find \
+            --input /scratch/$USER/METRO/test_VAF20_Variant.csv \
+            --output /scratch/$USER/METRO \
+            --transcripts /scratch/$USER/METRO/refs/transcripts.fa \
+            --subset 30
 ```

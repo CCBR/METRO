@@ -84,17 +84,21 @@ Each of the following arguments are optional and do not need to be provided. Def
 Filter MAF files in preparation of metro run.
 
 ```bash 
-# Step 0.) Grab an interactive node
-# Do not run on head node!
-srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty bash
+# login and load interactive session, as described in Getting Started
+
+### Github
 module purge
 module load python/3.5
 
- # Step 1.) Run METRO to find mutated protein products
- ./metro prepare --mafFiles  /data/*.maf \
-             --outputdir /scratch/$USER/METRO \
-             --outputprefix test \
-             --vafFilter 0.2 \
-             --passFilter 2 \
-             --impactFilter 2
+## Docker
+singularity shell --bind /data/$USER docker://nciccbr/ccbr_metro_v1.4 nciccbr/ccbr_metro_v1.4
+
+## Command
+ ./metro prepare \
+            --mafFiles /scratch/$USER/METRO/data/*.maf \
+            --outputDir /scratch/$USER/METRO \
+            --outprefix test \
+            --vafFilter 0.2 \
+            --passFilter 2 \
+            --impactFilter 2
 ```

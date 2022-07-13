@@ -54,17 +54,29 @@ Each of the following arguments are optional and do not need to be provided.
 > `--help`
 
 ## 2.3 Example
-Build reference files for the run sub comamnd.
+Build reference files for the run sub comamnd. Follow the setup in [Getting Started](https://ccbr.github.io/METRO/METRO/getting-started/) before this step.
 
-```bash 
-# Step 0.) Grab an interactive node
-# Do not run on head node!
-srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty bash
+```bash
+# login and load interactive session, as described in Getting Started
+
+# download reference files, as needed
+wget -P /output/dir/ http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M29/GRCm39.primary_assembly.genome.fa
+gunzip /scratch/$USER/METRO/refs/GRCm39.primary_assembly.genome.fa.gz
+
+wget -P /output/dir/ http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M29/gencode.vM26.annotation.gtf
+gunzip /scratch/$USER/METRO/refs/gencode.vM26.annotation.gtf.gz
+
+# Build METRO reference files
+## Github
 module purge
-module load cufflinks samtools
+module load cufflinks samtools singularity
 
-# Step 1.) Build METRO reference files
-metro build --ref-fa GRCm39.primary_assembly.genome.fa \
-            --ref-gtf gencode.vM26.annotation.gtf \
-            --output /scratch/$USER/METRO/refs/
+## Docker
+singularity shell --bind /data/$USER docker://nciccbr/ccbr_metro_v1.4 nciccbr/ccbr_metro_v1.4
+
+## Command
+metro build \
+            --ref-fa /scratch/$USER/METRO/GRCm39.primary_assembly.genome.fa \
+            --ref-gtf /scratch/$USER/METRO/gencode.vM26.annotation.gtf \
+            --output /scratch/$USER/METRO
 ```

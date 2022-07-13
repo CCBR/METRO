@@ -15,7 +15,7 @@ METRO takes a VCF file(s) and performs filtering and pre-processing for the pipe
 
 ### 2. System Requirements
 
-`metro` executable is composed of several inter-related sub commands. The `build` sub command requires that `samtools`, `gffread` from the cufflinks, and `python` are installed on the target system. the `predict` sub command requires that [netMHCpan](https://services.healthtech.dtu.dk/service.php?NetMHCpan-4.1) is available in user's $PATH. A virtual environment containing the required python packages to run metro can be built from our `requirements.txt`. METRO is compatiable with `python>=2.7` and `python>=3.5` (with preference to the latter).
+`metro` executable is composed of several inter-related sub commands. The `build` sub command requires that `samtools`, `gffread` from the cufflinks, and `python` are installed on the target system. the `predict` sub command requires that [netMHCpan](https://services.healthtech.dtu.dk/service.php?NetMHCpan-4.1) is available in user's $PATH. A virtual environment containing the required python packages to run metro can be built from our `requirements.txt`. METRO is compatiable with `python>=2.7` and `python>=3.5` (with preference to the latter). The tool is available on both [GitHub](https://github.com/CCBR/METRO) or on [DockerHub](https://hub.docker.com/r/nciccbr/ccbr_metro_v1.4).
 
 If you are on biowulf, these dependencies can be met by running the following command:
 ```bash
@@ -37,6 +37,6 @@ Contributing authors to METRO are as follows:
 - [Emily Steffke](https://github.com/EmilySteffke)
 - [Vishal Koparde](https://github.com/kopardev)
 - [Masaki Terabe](https://github.com/terabem)
-- Taijun Hana
+- [Taijun Hana](https://github.com/TaijunHana)
 
 SK and SS contributed to the geneating the source code; SK, SS, and VK contributed to the code; TH, ES, and MT contributed to the main concepts and analysis.

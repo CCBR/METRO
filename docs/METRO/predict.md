@@ -116,7 +116,7 @@ singularity shell --bind /data/$USER docker://nciccbr/ccbr_metro_v1.4 nciccbr/cc
 ## Command 
 ./metro predict \
                 --mutationFile /scratch/$USER/METRO/test_VAF20_Variant.metro.tsv \
-                --allelList H-2-Ld,H-2-Dd,H-2-Kb \
+                --alleleList H-2-Ld,H-2-Dd,H-2-Kb \
                 --peptideLength 8,9,10,11 \
                 --kmerLength 21 \
                 --outputDir /scratch/$USER/METRO/ \

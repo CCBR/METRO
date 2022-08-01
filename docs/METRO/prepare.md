@@ -91,7 +91,7 @@ module purge
 module load python/3.5
 
 ## Docker
-singularity shell --bind /data/$USER docker://nciccbr/ccbr_metro_v1.4 nciccbr/ccbr_metro_v1.4
+singularity shell --bind /data/$USER,/usr/local/apps/cufflinks/2.2.1 docker://nciccbr/metro_v1.4:latest
 
 ## Command
  ./metro prepare \

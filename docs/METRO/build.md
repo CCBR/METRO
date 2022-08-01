@@ -75,7 +75,7 @@ module load cufflinks samtools singularity
 singularity shell --bind /data/$USER docker://nciccbr/ccbr_metro_v1.4 nciccbr/ccbr_metro_v1.4
 
 ## Command
-metro build \
+./metro build \
             --ref-fa /scratch/$USER/METRO/GRCm39.primary_assembly.genome.fa \
             --ref-gtf /scratch/$USER/METRO/gencode.vM26.annotation.gtf \
             --output /scratch/$USER/METRO

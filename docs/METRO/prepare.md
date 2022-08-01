@@ -84,15 +84,18 @@ Each of the following arguments are optional and do not need to be provided. Def
 Filter MAF files in preparation of metro run.
 
 ```bash 
-# Step 0.) Grab an interactive node
-# Do not run on head node!
-srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty bash
+# login and load interactive session, as described in Getting Started
+
+### Github
 module purge
 module load python/3.5
 
- # Step 1.) Run METRO subcommand PREPARE to prepare files for processing
+## Docker
+singularity shell --bind /data/$USER,/usr/local/apps/cufflinks/2.2.1 docker://nciccbr/metro_v1.4:latest
+
+## Command
  ./metro prepare \
-            --mafFiles /data/*.maf \
+            --mafFiles /scratch/$USER/METRO/data/*.maf \
             --outputDir /scratch/$USER/METRO \
             --outprefix test \
             --vafFilter 0.2 \

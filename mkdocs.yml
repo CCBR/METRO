@@ -33,7 +33,7 @@ theme:
       toggle:
         icon: material/toggle-switch
         name: Switch to light mode
-  logo: img/METRO_logo.png
+  logo: img/metro_logo.png
   favicon: img/fred_logo.png
 
 # Plugins
@@ -106,3 +106,4 @@ nav:
   - FAQ:
     - Troubleshooting: METRO/troubleshooting.md
     - Citation: METRO/citation.md
+    - Example Data: METRO/example.md

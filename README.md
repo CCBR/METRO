@@ -15,9 +15,9 @@ METRO takes a VCF file(s) and performs filtering and pre-processing for the pipe
 
 ### 2. System Requirements
 
-`metro` executable is composed of several inter-related sub commands. The `build` sub command requires that `samtools`, `gffread` from the cufflinks, and `python` are installed on the target system. the `predict` sub command requires that [netMHCpan](https://services.healthtech.dtu.dk/service.php?NetMHCpan-4.1) is available in user's $PATH. A virtual environment containing the required python packages to run metro can be built from our `requirements.txt`. METRO is compatiable with `python>=2.7` and `python>=3.5` (with preference to the latter).
+`metro` executable is composed of several inter-related sub commands. The `build` sub command requires that `samtools`, `gffread` from the cufflinks, and `python` are installed on the target system. the `predict` sub command requires that [netMHCpan](https://services.healthtech.dtu.dk/service.php?NetMHCpan-4.1) is available in user's $PATH. A virtual environment containing the required python packages to run metro can be built from our `requirements.txt`. METRO is compatiable with `python>=2.7` and `python>=3.5` (with preference to the latter). The tool is available on both [GitHub](https://github.com/CCBR/METRO) or on [DockerHub](https://hub.docker.com/r/nciccbr/ccbr_metro_v1.4).
 
-If you are on biowulf, these dependencies can be met by running the following command:
+If you are on biowulf, and plan to use GITHUB these dependencies can be met by running the following command:
 ```bash
 # Grab an interactive node
 # Do not run metro on the head node!
@@ -25,6 +25,16 @@ srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty
 module purge
 module load cufflinks samtools python/3.5
 ```
+
+If you are on biowulf, and plan to use DOCKER these dependencies can be met by running the following command:
+
+```
+srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty bash
+
+module load singularity
+singularity shell --bind /data/$USER,/usr/local/apps/cufflinks/2.2.1 docker://nciccbr/ccbr_metro_v1.4 nciccbr/metro_v1.4:latest
+```
+
 
 ### 3. Usage
 
@@ -39,4 +49,4 @@ Contributing authors to METRO are as follows:
 - [Masaki Terabe](https://github.com/terabem)
 - [Taijun Hana](https://github.com/TaijunHana)
 
-SK and SS contributed to the geneating the source code; SK, SS, and VK contributed to the code; TH, ES, and MT contributed to the main concepts and analysis.
+SK and SS contributed to the generating the source code; SK, SS, and VK contributed to the code; TH, ES, and MT contributed to the main concepts and analysis.

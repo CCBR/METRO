@@ -10,7 +10,7 @@ The following are sub-commands used within METRO:
     - find: find mutated protein products
     - predict: predict the binding of peptides to any MHC molecule 
 
-## 1.2 Setup METRO
+## 1.2 Setup Dependencies
 
 METRO has two dependencies: PYTHON and netMHCpan. These dependencies can be installed by a sysadmin. Before running the pipeline or any of the commands below, please ensure PYTHON and netMHCHPan are in your $PATH. 
 
@@ -20,35 +20,44 @@ METRO has two dependencies: PYTHON and netMHCpan. These dependencies can be inst
     - xlrd
     - numpy
 
-    Please see follow the instructions below for getting started with the METRO pipeline.
+CUFFLINKS
 
-### 1.2.1 Login to cluster
+SAMTOOLS
 
+
+### 1.3 Login to cluster
 ```
-# Setup Step 0.) ssh into cluster's head node
-# example below for Biowulf cluster
+# ssh into cluster's head node
 ssh -Y $USER@biowulf.nih.gov
 ```
 
-### 1.2.2 Grab an interactive node
+### 1.4 Prepare an interactive node
 ```
-# Setup Step 1.) Please do not run METRO on the head node!
 # Grab an interactive node first
 srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty bash
-```
 
-### 1.2.3 Load dependecies
-```
-# Setup Step 2.) Add PYTHON executables to $PATH
-module purge
-module load METRO
-
-# Setup Step 3.) Add netMHCpan executables to $PATH
+# Add PYTHON executables to $PATH 
 # NOTE: If you do not have a bashrc file, create one first
-[TODO add netMHC pan path here]
 
-# Setup Step 4.) Download METRO and add to $PATH
-# Clone the METRO repository from Github
+# Add netMHCpan executables to $PATH
+# NOTE: If you do not have a bashrc file, create one first
+export PATH=$PATH:/data/CCBR_Pipeliner/bin/netMHC/netMHCpan-4.1
+```
+
+## 1.5 Setup METRO through either GitHub or Docker
+The tool is available on both [GitHub](https://github.com/CCBR/METRO) or on [DockerHub](https://hub.docker.com/r/nciccbr/ccbr_metro_v1.4).
+
+### 1.5.1 Clone the METRO repository from Github
+```
 git clone https://github.com/CCBR/METRO.git
 export PATH=${PWD}/METRO:${PATH}
+# run subcommands
+```
+
+### 1.5.2 Pull Docker Image
+# Review subcommands before loading singularity, as other dependencies may need to be included.
+```
+module load singularity
+singularity shell --bind /data/$USER docker://nciccbr/ccbr_metro_v1.4 nciccbr/ccbr_metro_v1.4
+# run subcommand
 ```

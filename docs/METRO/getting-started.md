@@ -34,7 +34,7 @@ ssh -Y $USER@biowulf.nih.gov
 ### 1.4 Prepare an interactive node
 ```
 # Grab an interactive node first
-srun -N 1 -n 1 --time=12:00:00 -p interactive --mem=8gb  --cpus-per-task=4 --pty bash
+sinteractive
 
 # Add PYTHON executables to $PATH 
 # NOTE: If you do not have a bashrc file, create one first

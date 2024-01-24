@@ -7,12 +7,16 @@ authors:
 - family-names: "Sevilla"
   given-names: "Samantha"
   orcid: "https://orcid.org/0000-0002-8734-9875"
+  affiliation: Advanced Biomedical Computational Science, Frederick National Laboratory
+    for Cancer Research, Frederick, MD 21702, USA
 - family-names: "Steffke"
   given-names: "Emily"
   orcid: "https://orcid.org/0000-0003-3350-9818"
 - family-names: "Koparde"
   given-names: "Vishal"
   orcid: "https://orcid.org/0000-0001-8978-8495"
+  affiliation: Advanced Biomedical Computational Science, Frederick National Laboratory
+    for Cancer Research, Frederick, MD 21702, USA
 - family-names: "Terabe"
   given-names: "Masaki"
   orcid: "https://orcid.org/0000-0002-1777-0189"
@@ -20,7 +24,13 @@ authors:
   given-names: "Taijun"
   orcid: "https://orcid.org/0000-0001-7649-3305"
 title: "Mouse nEoanTigen pRedictOr (METRO)"
+url:
+repository-code: "https://github.com/CCBR/METRO"
+license: MIT
+type: software
+identifiers:
+- description: Archived snapshots of all versions
+  type: doi
+  value: 10.5281/zenodo.6643611
 version: 1.3
-doi: 10.5281/zenodo.6643611
 date-released: 2022-06-14
-url: "https://github.com/CCBR/METRO"

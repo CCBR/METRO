@@ -1,4 +1,4 @@
-# 4. Find Synopsis
+# 5. Find Synopsis
 The `./metro` executable is composed of several inter-related sub commands. Please see `./metro -h` for all available options. The synopsis for the sub command `find` shows its parameters and their usage. Optional parameters are shown in square brackets.
 
 ```
@@ -10,7 +10,7 @@ $ ./metro find [-h] [--subset SUBSET] \
 
 This part of the documentation describes options and concepts for `./metro find` sub command in more detail. With minimal configuration, the `find` sub command enables you to start running metro pipeline. In its most basic form, `./metro find` only has _three required inputs_.
 
-## 4.1 Required Arguments
+## 5.1 Required Arguments
 Each of the following arguments are required. Failure to provide a required argument will result in a non-zero exit-code.
 
 `--input INPUT [INPUT ...]`  
@@ -40,7 +40,7 @@ Each of the following arguments are required. Failure to provide a required argu
 > ***Example:*** 
 > ` --transcripts transcripts.fa`
 
-## 4.2 Optional Arguments
+## 5.2 Optional Arguments
 Each of the following arguments are optional and do not need to be provided. 
 
 `-h, --help`            
@@ -61,7 +61,7 @@ Each of the following arguments are optional and do not need to be provided.
 > ***Example:*** 
 > `--subset 30`
 
-## 4.3 Example
+## 5.3 Example
 Find metro with the references files generated in the build example.
 
 ```bash 
@@ -69,7 +69,7 @@ Find metro with the references files generated in the build example.
 
 ### Github
 module purge
-module load python/3.5
+module load python/3.8
 
 ## Docker
 singularity shell --bind /data/$USER docker://nciccbr/ccbr_metro_v1.4 nciccbr/ccbr_metro_v1.4

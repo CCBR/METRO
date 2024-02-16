@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/sh
+
 ###############################################################
 # INPUT ARGS
 ###############################################################
@@ -16,13 +17,13 @@ calltype=$2
 # USER PARAMS
 ###############################################################
 # Update directory paths
-METRO_LOC="/data/sevillas2/PIPELINES/METRO"
+METRO_LOC="/data/CCBR_Pipeliner/Pipelines/METRO/metro-dev-sevillas2"
 REF_FA="http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M29/GRCm39.primary_assembly.genome.fa.gz"
 REF_FA_SHORT="GRCm39.primary_assembly.genome.fa"
 REF_GTF="http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M29/gencode.vM29.annotation.gtf.gz"
 REF_GTF_SHORT="gencode.vM29.annotation.gtf"
 OUTPUT_DIR="/data/sevillas2/metro_fulltest"
-INPUT_MAF_FILES="/data/sevillas2/PIPELINES/METRO/data/*.maf"
+INPUT_MAF_FILES="/data/CCBR_Pipeliner/Pipelines/METRO/metro-dev-sevillas2/data/*.maf"
 
 # set variables
 prefix="test"
@@ -136,6 +137,7 @@ if [[ $flag == "find" ]]; then
     VAF=`echo $vafFilter | cut -f2 -d"."`
     
     echo "#!/bin/sh
+    module load python/3.8
     $METRO_LOC/./metro find \
         --input $PREPARE_DIR/${prefix}_VAF${VAF}0_Variant.csv \
         --output $FIND_DIR \

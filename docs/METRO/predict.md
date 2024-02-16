@@ -1,4 +1,4 @@
-# 5. Predict Synopsis
+# 6. Predict Synopsis
 The `./metro` executable is composed of several inter-related sub commands. Please see `./metro -h` for all available options. The synopsis for the sub command `predict` shows its parameters and their usage. Optional parameters are shown in square brackets.
 
 ```
@@ -14,7 +14,7 @@ $ ./ metro predict [-h] --mutationFile MUTATIONFILE \
 
 This part of the documentation describes options and concepts for `./metro input` sub command in more detail. With minimal configuration, the `predict` sub command enables you to generate prediction files for each mutated sequence identified in the metro `run` sub command.
 
-## 5.1 Required Arguments
+## 6.1 Required Arguments
 Each of the following arguments are required. Failure to provide a required argument will result in a non-zero exit-code.
 
 `--mutationFile MUTATIONFILE [MUTATIONFILE ...]`  
@@ -61,7 +61,7 @@ Each of the following arguments are required. Failure to provide a required argu
 > ***Example:*** 
 > `--alleleList H-2-Ld,H-2-Dd,H-2-Kb`
 
-## 5.2 Optional Arguments
+## 6.2 Optional Arguments
 Each of the following arguments are optional and do not need to be provided. Default values listed in each example will be used, if value not provided.
 
   `-h, --help`            
@@ -100,7 +100,7 @@ Each of the following arguments are optional and do not need to be provided. Def
 > ***Example:*** 
 > `--lowbind 2`
 
-## 5.3 Example
+## 6.3 Example
 Predict the binding of peptides to any MHC molecule of known sequence using artificial neural networks (ANNs) and perform filtering of output based on user-provided parameters.
 
 ```bash 

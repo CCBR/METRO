@@ -1,4 +1,4 @@
-# 2. Build Synposis
+# 3. Build Synposis
 
 The `./metro` executable is composed of several inter-related sub commands. Please see `./metro -h` for all available options. The synopsis for the sub command `build` shows its parameters and their usage. Optional parameters are shown in square brackets.
 
@@ -10,7 +10,7 @@ $ ./metro build [-h] --ref-fa REF_FA \
 
 This part of the documentation describes options and concepts for the `./metro build` sub command in more detail. With minimal configuration, the build sub command enables you to build reference file. In its most basic form, `./metro build` only has _three required inputs_.
 
-## 2.1. Required Arguments
+## 3.1. Required Arguments
 
 Each of the following arguments are required. Failure to provide a required argument will result in a non-zero exit-code.
 
@@ -41,7 +41,7 @@ Each of the following arguments are required. Failure to provide a required argu
 > ***Example:*** 
 > `--output /scratch/$USER/refs/hg38_v36/`
 
-## 2.2 Optional Arguments
+## 3.3 Optional Arguments
 Each of the following arguments are optional and do not need to be provided. 
 
 `-h, --help`            
@@ -53,18 +53,18 @@ Each of the following arguments are optional and do not need to be provided.
 > ***Example:*** 
 > `--help`
 
-## 2.3 Example
+## 3.3 Example
 Build reference files for the run sub comamnd. Follow the setup in [Getting Started](https://ccbr.github.io/METRO/METRO/getting-started/) before this step.
 
 ```bash
 # login and load interactive session, as described in Getting Started
 
 # download reference files, as needed
-wget -P /output/dir/ http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M29/GRCm39.primary_assembly.genome.fa
+wget -P /output/dir/ http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M39/GRCm39.primary_assembly.genome.fa
 gunzip /scratch/$USER/METRO/refs/GRCm39.primary_assembly.genome.fa.gz
 
-wget -P /output/dir/ http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M29/gencode.vM26.annotation.gtf
-gunzip /scratch/$USER/METRO/refs/gencode.vM26.annotation.gtf.gz
+wget -P /output/dir/ http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M39/gencode.vM36.annotation.gtf
+gunzip /scratch/$USER/METRO/refs/gencode.vM36.annotation.gtf.gz
 
 # Build METRO reference files
 ## Github
@@ -77,6 +77,6 @@ singularity shell --bind /data/$USER docker://nciccbr/ccbr_metro_v1.4 nciccbr/cc
 ## Command
 ./metro build \
             --ref-fa /scratch/$USER/METRO/GRCm39.primary_assembly.genome.fa \
-            --ref-gtf /scratch/$USER/METRO/gencode.vM26.annotation.gtf \
+            --ref-gtf /scratch/$USER/METRO/gencode.vM36.annotation.gtf \
             --output /scratch/$USER/METRO
 ```

@@ -99,10 +99,11 @@ nav:
   - Background : index.md
   - Usage: 
     - 1. Getting Started : METRO/getting-started.md
-    - 2. Build: METRO/build.md
-    - 3. Prepare: METRO/prepare.md
-    - 4. Find: METRO/find.md
-    - 5. Predict: METRO/predict.md
+    - 2. Usage: METRO/usage.md
+    - 3. Build: METRO/build.md
+    - 4. Prepare: METRO/prepare.md
+    - 5. Find: METRO/find.md
+    - 6. Predict: METRO/predict.md
   - FAQ:
     - Troubleshooting: METRO/troubleshooting.md
     - Citation: METRO/citation.md

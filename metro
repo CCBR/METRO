@@ -522,7 +522,7 @@ def predict(sub_args):
     )
     print("Running: " + process)
     exitcode = bash(process)
-
+    
     # Read in output of netMHC    
     print("--Post-Processing")
     df_list=[]

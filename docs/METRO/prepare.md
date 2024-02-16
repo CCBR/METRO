@@ -1,4 +1,4 @@
-# 3. Prepare Synopsis
+# 4. Prepare Synopsis
 The `./metro` executable is composed of several inter-related sub commands. Please see `./metro -h` for all available options. The synopsis for the sub command `prepare` shows its parameters and their usage. Optional parameters are shown in square brackets.
 
 ```
@@ -12,7 +12,7 @@ $ ./metro prepare [-h] --mafFiles MAFFILES \
 
 This part of the documentation describes options and concepts for `./metro prepare` sub command in more detail. With minimal configuration, the `prepare` sub command enables you to create filtered MAF files for the metro `run` pipeline.
 
-## 3.1 Required Arguments
+## 4.1 Required Arguments
 Each of the following arguments are required. Failure to provide a required argument will result in a non-zero exit-code.
 `--mafFiles MAFFILES [MAFFILES ...]`  
 > **Input MAF-like file(s) to process.**  
@@ -41,7 +41,7 @@ Each of the following arguments are required. Failure to provide a required argu
 > ***Example:*** 
 > ` --outputprefix test`
 
-## 3.2 Optional Arguments
+## 4.2 Optional Arguments
 Each of the following arguments are optional and do not need to be provided. Default values listed in each example will be used, if value not provided.
 
   `-h, --help`            
@@ -80,7 +80,7 @@ Each of the following arguments are optional and do not need to be provided. Def
 > ***Example:*** 
 > `--impactFilter 2`
 
-## 3.3 Example
+## 4.3 Example
 Filter MAF files in preparation of metro run.
 
 ```bash 
@@ -88,7 +88,7 @@ Filter MAF files in preparation of metro run.
 
 ### Github
 module purge
-module load python/3.5
+module load python/4.5
 
 ## Docker
 singularity shell --bind /data/$USER,/usr/local/apps/cufflinks/2.2.1 docker://nciccbr/metro_v1.4:latest

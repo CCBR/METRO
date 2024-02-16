@@ -49,7 +49,6 @@ def bash(cmd, interpreter='/bin/bash', strict=True, **kwargs):
     return exitcode
 
 # run netMHCpan on individual allele with RAY parallelizing jobs
-@ray.remote 
 def run_netMHC(alleleid, netMHC_input, peptideLength, netmhc_intermed): 
     print("RUNNING " + alleleid)
     
@@ -84,15 +83,10 @@ if __name__ == '__main__':
     # or remote workers.
     try: threads = int(sys.argv[5])
     except ValueError: threads = 4
-
-    # Initialize a ray cluster
-    # with X remote workers
-    ray.init(num_cpus = threads)
-
     # set args
     netMHC_input=sys.argv[2]
     peptideLength=sys.argv[3]
     netmhc_intermed=sys.argv[4]
 
     # run netMHC in parallel
-    result_ids = [run_netMHC.remote(id, netMHC_input, peptideLength, netmhc_intermed) for id in alleleList] 
+    result_ids = [run_netMHC(id, netMHC_input, peptideLength, netmhc_intermed) for id in alleleList] 

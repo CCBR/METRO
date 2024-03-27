@@ -57,7 +57,7 @@ Each of the following arguments are optional and do not need to be provided. Def
 > **Filter for VAF values.**   
 > *type: numeric*
 >   
-> Minimum value for average VAF, calculated as t_alt_count/t_depth, to be included.
+> Minimum value for average VAF, calculated as t_alt_count/t_depth, to be included. NOTE: If input files do not include these columns, filtering is skipped.
 > 
 > ***Example:*** 
 > `--vafFilter 0.2`

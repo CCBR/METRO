@@ -87,6 +87,7 @@ if [[ $flag == "build" ]]; then
     echo "--building"
 
     echo "#!/bin/sh
+    export PATH=$PATH:/data/CCBR_Pipeliner/bin/netMHC/netMHCpan-4.1
     module load samtools cufflinks
 
     if [[ ! -f $BUILD_DIR/$REF_FA_SHORT ]]; then
@@ -119,6 +120,7 @@ if [[ $flag == "prepare" ]]; then
     echo "--prepare"
 
     echo "#!/bin/sh
+    export PATH=$PATH:/data/CCBR_Pipeliner/bin/netMHC/netMHCpan-4.1
     $METRO_LOC/./metro prepare \
         --mafFiles $INPUT_MAF_FILES \
         --outputDir $PREPARE_DIR \
@@ -137,6 +139,7 @@ if [[ $flag == "find" ]]; then
     VAF=`echo $vafFilter | cut -f2 -d"."`
     
     echo "#!/bin/sh
+    export PATH=$PATH:/data/CCBR_Pipeliner/bin/netMHC/netMHCpan-4.1
     module load python/3.8
     $METRO_LOC/./metro find \
         --input $PREPARE_DIR/${prefix}_VAF${VAF}0_Variant.csv \
@@ -164,6 +167,7 @@ if [[ $flag == "predict" ]]; then
         sh=$sh_dir/${flag}_${a}.sh
 
         echo "#!/bin/sh
+            export PATH=$PATH:/data/CCBR_Pipeliner/bin/netMHC/netMHCpan-4.1
             module load python/3.8
 
             cd $METRO_LOC
